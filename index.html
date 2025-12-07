@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Constantinopla - Dark Ages</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: 'Georgia', serif; }
+        #map { height: 100vh; width: 100vw; background: #000; }
+
+        /* Estilo dos Popups */
+        .leaflet-popup-content-wrapper { 
+            background: #111; color: #ccc; border: 1px solid #8a0303;
+            box-shadow: 0 0 15px rgba(138, 3, 3, 0.4); font-size: 14px;
+        }
+        .leaflet-popup-tip { background: #111; border-top: 1px solid #8a0303; }
+        .popup-title { 
+            font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.4em; color: #ff3333;
+            display: block; border-bottom: 1px solid #555; margin-bottom: 8px;
+        }
+
+        /* Botões e Painéis */
+        #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; }
+        .btn-ui { 
+            background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #666; 
+            padding: 8px 15px; cursor: pointer; font-family: 'Cinzel', serif; 
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
+        }
+        .btn-ui:hover { border-color: #ff0000; color: #ff0000; box-shadow: 0 0 10px #8a0303; }
+
+        #dm-panel {
+            position: absolute; top: 60px; right: 10px; width: 300px;
+            background: #0f0f0f; padding: 20px; z-index: 1000; display: none;
+            border: 1px solid #8a0303; box-shadow: 0 0 30px #000;
+        }
+        .dm-input { 
+            width: 100%; margin-bottom: 10px; padding: 8px; background: #222; 
+            border: 1px solid #444; color: #fff; box-sizing: border-box; 
+        }
+        
+        #login-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.9); z-index: 2000; display: none; 
+            justify-content: center; align-items: center;
+        }
+        .login-box { 
+            background: #111; padding: 30px; border: 2px solid #8a0303; 
+            width: 300px; text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="auth-container">
+    <button id="btn-login" class="btn-ui" onclick="abrirLogin()">💀 Login Mestre</button>
+    <button id="btn-logout" class="btn-ui" onclick="sair()" style="display:none;">Sair</button>
+</div>
+
+<div id="login-modal">
+    <div class="login-box">
+        <h3 style="font-family:'Cinzel'; color:#ff3333;">Domínio do Sangue</h3>
+        <input type="email" id="email" class="dm-input" placeholder="Email">
+        <input type="password" id="senha" class="dm-input" placeholder="Senha">
+        <br><br>
+        <button class="btn-ui" onclick="logar()">Entrar</button>
+        <button class="btn-ui" style="border:none; background:transparent; color:#666; font-size:0.8em;" onclick="fecharLogin()">Cancelar</button>
+    </div>
+</div>
+
+<div id="dm-panel">
+    <h3 style="color:#ff3333; font-family:'Cinzel'; margin-top:0;">Novo Local</h3>
+    <div id="coord-label" style="color:#666; font-size:0.8em; margin-bottom:10px;">Clique no mapa...</div>
+    <input type="text" id="novo-titulo" class="dm-input" placeholder="Título">
+    <textarea id="novo-desc" class="dm-input" rows="3" placeholder="Descrição"></textarea>
+    <button class="btn-ui" style="width:100%" onclick="salvarPonto()">Gravar</button>
+</div>
+
+<script>
+    // --- CONFIGURAÇÃO DO FIREBASE (Já preenchi para você!) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ",
+        authDomain: "constantinopla-darkages.firebaseapp.com",
+        projectId: "constantinopla-darkages",
+        storageBucket: "constantinopla-darkages.firebasestorage.app",
+        messagingSenderId: "193290474936",
+        appId: "1:193290474936:web:f04bc7108856ef94b42b4d"
+    };
+
+    // Inicializa o Firebase (Modo Universal)
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // --- 2. CONFIGURAÇÃO DO MAPA ---
+    // Ajustado para sua imagem 3D Gigante (5906 x 3253)
+    // Se a imagem não aparecer, verifique se o nome do arquivo é exato: 'mapa_final.jpg'
+    var imgWidth = 5906;
+    var imgHeight = 3253;
+    var url = 'mapa_final.jpg';
+
+    var map = L.map('map', {
+        crs: L.CRS.Simple,
+        minZoom: -2, maxZoom: 2, attributionControl: false
+    });
+    var bounds = [[0,0], [imgHeight, imgWidth]];
+    L.imageOverlay(url, bounds).addTo(map);
+    map.fitBounds(bounds);
+    map.setMaxBounds(bounds);
+
+    // Ícone
+    var iconBlood = L.divIcon({
+        className: 'custom-div-icon',
+        html: "<div style='background-color:#c00; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow: 0 0 10px #f00;'></div>",
+        iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10]
+    });
+
+    // --- 3. LÓGICA DO SISTEMA ---
+    var currentUser = null;
+    var layerPontos = L.layerGroup().addTo(map);
+    var tempLat = 0, tempLng = 0;
+
+    // Escuta o banco de dados
+    db.collection("locais").onSnapshot((snapshot) => {
+        layerPontos.clearLayers();
+        snapshot.forEach((doc) => {
+            var d = doc.data();
+            var btnDel = currentUser ? `<button onclick="deletar('${doc.id}')" style="float:right; color:red; background:none; border:none; cursor:pointer;">X</button>` : "";
+            
+            L.marker([d.lat, d.lng], {icon: iconBlood}).addTo(layerPontos)
+                .bindPopup(`${btnDel}<span class="popup-title">${d.titulo}</span>${d.desc}`);
+        });
+    });
+
+    // Clique no mapa
+    map.on('click', function(e){
+        if(!currentUser) return;
+        tempLat = Math.round(e.latlng.lat);
+        tempLng = Math.round(e.latlng.lng);
+        document.getElementById('dm-panel').style.display = 'block';
+        document.getElementById('coord-label').innerText = `Coords: ${tempLat}, ${tempLng}`;
+    });
+
+    // Funções de Ação
+    function salvarPonto() {
+        var tit = document.getElementById('novo-titulo').value;
+        var desc = document.getElementById('novo-desc').value;
+        if(!tit) return alert("Precisa de título!");
+
+        db.collection("locais").add({
+            lat: tempLat, lng: tempLng, titulo: tit, desc: desc
+        }).then(() => {
+            document.getElementById('dm-panel').style.display = 'none';
+            document.getElementById('novo-titulo').value = "";
+            document.getElementById('novo-desc').value = "";
+        });
+    }
+
+    // Deletar precisa estar no escopo global window
+    window.deletar = function(id) {
+        if(confirm("Apagar este local?")) {
+            db.collection("locais").doc(id).delete();
+        }
+    };
+
+    // --- 4. LOGIN / LOGOUT ---
+    function abrirLogin() { document.getElementById('login-modal').style.display = 'flex'; }
+    function fecharLogin() { document.getElementById('login-modal').style.display = 'none'; }
+    
+    function logar() {
+        var e = document.getElementById('email').value;
+        var s = document.getElementById('senha').value;
+        auth.signInWithEmailAndPassword(e, s).then(() => {
+            fecharLogin();
+        }).catch(erro => alert("Erro: " + erro.message));
+    }
+
+    function sair() { auth.signOut(); }
+
+    auth.onAuthStateChanged((user) => {
+        currentUser = user;
+        if(user) {
+            document.getElementById('btn-login').style.display = 'none';
+            document.getElementById('btn-logout').style.display = 'block';
+            document.body.style.border = "2px solid #8a0303";
+        } else {
+            document.getElementById('btn-login').style.display = 'block';
+            document.getElementById('btn-logout').style.display = 'none';
+            document.getElementById('dm-panel').style.display = 'none';
+            document.body.style.border = "none";
+        }
+    });
+
+</script>
+</body>
+</html>
