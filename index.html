@@ -21,7 +21,7 @@
         /* Estilo dos Popups */
         .leaflet-popup-content-wrapper { 
             background: #111; color: #ccc; border: 1px solid #8a0303;
-            box-shadow: 0 0 15px rgba(0,0,0,0.8); font-size: 14px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8); font-size: 14px; padding: 5px;
         }
         .leaflet-popup-tip { background: #111; border-top: 1px solid #8a0303; }
         .popup-title { 
@@ -29,7 +29,7 @@
             display: block; border-bottom: 1px solid #444; margin-bottom: 8px;
         }
         
-        /* Cores dinâmicas nos títulos dos popups */
+        /* Cores dinâmicas */
         .color-vermelho { color: #ff3333; }
         .color-azul { color: #3388ff; }
         .color-verde { color: #2ecc71; }
@@ -37,7 +37,7 @@
         .color-dourado { color: #f1c40f; }
         .color-cinza { color: #95a5a6; }
 
-        /* Interface UI */
+        /* UI Painel */
         #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; }
         .btn-ui { 
             background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #666; 
@@ -67,12 +67,21 @@
             width: 300px; text-align: center; 
         }
 
-        /* Botão de Deletar */
-        .btn-del {
-            float: right; background: none; border: 1px solid #500; color: #f00;
-            cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-top: -30px;
+        /* --- NOVO ESTILO DO BOTÃO DELETAR --- */
+        /* Agora ele fica embaixo, grande e vermelho */
+        .btn-del-container {
+            margin-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            text-align: center;
         }
-        .btn-del:hover { background: #500; color: white; }
+        .btn-del {
+            background: #300; border: 1px solid #600; color: #f00;
+            cursor: pointer; padding: 5px 15px; border-radius: 4px; font-size: 11px;
+            width: 100%; font-weight: bold; text-transform: uppercase;
+        }
+        .btn-del:hover { background: #f00; color: white; border-color: #f00; }
+
     </style>
 </head>
 <body>
@@ -142,9 +151,9 @@
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // --- 3. GERADOR DE ÍCONES (SISTEMA DE CORES) ---
+    // --- 3. GERADOR DE ÍCONES ---
     function criarIcone(cor) {
-        let corHex = '#ff3333'; // Vermelho padrão
+        let corHex = '#ff3333';
         if (cor === 'azul') corHex = '#3388ff';
         if (cor === 'verde') corHex = '#2ecc71';
         if (cor === 'roxo') corHex = '#9b59b6';
@@ -161,41 +170,42 @@
     // --- 4. LÓGICA DO SISTEMA ---
     var currentUser = null;
     var layerPontos = L.layerGroup().addTo(map);
-    var dadosLocais = []; // Guarda os dados na memória pra redesenhar rápido
+    var dadosLocais = []; 
     var tempLat = 0, tempLng = 0;
 
-    // Escuta o banco de dados e atualiza a variável local
+    // Escuta o banco de dados
     db.collection("locais").onSnapshot((snapshot) => {
         dadosLocais = [];
         snapshot.forEach((doc) => {
             dadosLocais.push({ id: doc.id, ...doc.data() });
         });
-        renderizarPontos(); // Desenha assim que carrega
+        renderizarPontos();
     });
 
-    // Função que desenha os pontos na tela
+    // Função que desenha os pontos
     function renderizarPontos() {
-        layerPontos.clearLayers(); // Limpa pra não duplicar
+        layerPontos.clearLayers();
         
         dadosLocais.forEach(d => {
-            // Se tiver logado, mostra o botão de lixeira. Se não, vazio.
-            let btnDel = currentUser ? `<button class="btn-del" onclick="deletar('${d.id}')">EXCLUIR</button>` : "";
+            // Se logado, cria um bloco de HTML separado pro botão
+            let divBotao = currentUser ? 
+                `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR LOCAL</button></div>` 
+                : "";
             
-            // Define a cor (se for antigo e não tiver cor, usa vermelho)
             let cor = d.cor || 'vermelho';
             
             L.marker([d.lat, d.lng], {icon: criarIcone(cor)}).addTo(layerPontos)
                 .bindPopup(`
-                    ${btnDel}
                     <span class="popup-title color-${cor}">${d.titulo}</span>
-                    ${d.desc}
+                    <div style="margin-bottom:5px;">${d.desc}</div>
+                    ${divBotao}
                 `);
         });
     }
 
-    // Clique no mapa para adicionar
+    // Clique no mapa
     map.on('click', function(e){
-        if(!currentUser) return; // Só mestre pode clicar
+        if(!currentUser) return;
         tempLat = Math.round(e.latlng.lat);
         tempLng = Math.round(e.latlng.lng);
         document.getElementById('dm-panel').style.display = 'block';
@@ -207,7 +217,7 @@
     window.salvarPonto = function() {
         var tit = document.getElementById('novo-titulo').value;
         var desc = document.getElementById('novo-desc').value;
-        var cor = document.getElementById('novo-cor').value; // Pega a cor escolhida
+        var cor = document.getElementById('novo-cor').value;
 
         if(!tit) return alert("Falta o título!");
 
@@ -220,10 +230,13 @@
         }).catch(err => alert("Erro ao salvar: " + err));
     }
 
-    // Deletar Ponto
+    // Deletar Ponto (Agora global e blindado)
     window.deletar = function(id) {
-        if(confirm("Tem certeza que quer apagar este local para sempre?")) {
-            db.collection("locais").doc(id).delete();
+        console.log("Tentando deletar: " + id);
+        if(confirm("Tem certeza ABSOLUTA que quer apagar este local?")) {
+            db.collection("locais").doc(id).delete()
+                .then(() => alert("Local apagado com sucesso!"))
+                .catch((error) => alert("Erro ao apagar: " + error));
         }
     };
 
@@ -238,15 +251,13 @@
             .catch(erro => alert("Erro: " + erro.message));
     }
 
-    window.sair = function() { auth.signOut(); }
+    window.sair = function() { 
+        auth.signOut().then(() => alert("Deslogado!")); 
+    }
 
-    // Monitora se entrou ou saiu (AQUI ESTÁ A CORREÇÃO DO DELETE!)
     auth.onAuthStateChanged((user) => {
         currentUser = user;
-        
-        // Assim que o status muda, a gente REDESENHA o mapa.
-        // Se entrou: redesenha com lixeiras. Se saiu: redesenha sem lixeiras.
-        renderizarPontos(); 
+        renderizarPontos(); // Atualiza os botões de delete
 
         if(user) {
             document.getElementById('btn-login').style.display = 'none';
