@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Constantinopla - Dark Ages</title>
+    <title>Constantinopla - A Cidade do Desejo</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -21,15 +21,23 @@
         /* Estilo dos Popups */
         .leaflet-popup-content-wrapper { 
             background: #111; color: #ccc; border: 1px solid #8a0303;
-            box-shadow: 0 0 15px rgba(138, 3, 3, 0.4); font-size: 14px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8); font-size: 14px;
         }
         .leaflet-popup-tip { background: #111; border-top: 1px solid #8a0303; }
         .popup-title { 
-            font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.4em; color: #ff3333;
-            display: block; border-bottom: 1px solid #555; margin-bottom: 8px;
+            font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.4em; 
+            display: block; border-bottom: 1px solid #444; margin-bottom: 8px;
         }
+        
+        /* Cores dinâmicas nos títulos dos popups */
+        .color-vermelho { color: #ff3333; }
+        .color-azul { color: #3388ff; }
+        .color-verde { color: #2ecc71; }
+        .color-roxo { color: #9b59b6; }
+        .color-dourado { color: #f1c40f; }
+        .color-cinza { color: #95a5a6; }
 
-        /* Botões e Painéis */
+        /* Interface UI */
         #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; }
         .btn-ui { 
             background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #666; 
@@ -44,9 +52,10 @@
             border: 1px solid #8a0303; box-shadow: 0 0 30px #000;
         }
         .dm-input { 
-            width: 100%; margin-bottom: 10px; padding: 8px; background: #222; 
+            width: 100%; margin-bottom: 10px; padding: 10px; background: #222; 
             border: 1px solid #444; color: #fff; box-sizing: border-box; 
         }
+        select.dm-input { cursor: pointer; }
         
         #login-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -57,6 +66,13 @@
             background: #111; padding: 30px; border: 2px solid #8a0303; 
             width: 300px; text-align: center; 
         }
+
+        /* Botão de Deletar */
+        .btn-del {
+            float: right; background: none; border: 1px solid #500; color: #f00;
+            cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-top: -30px;
+        }
+        .btn-del:hover { background: #500; color: white; }
     </style>
 </head>
 <body>
@@ -82,13 +98,24 @@
 <div id="dm-panel">
     <h3 style="color:#ff3333; font-family:'Cinzel'; margin-top:0;">Novo Local</h3>
     <div id="coord-label" style="color:#666; font-size:0.8em; margin-bottom:10px;">Clique no mapa...</div>
-    <input type="text" id="novo-titulo" class="dm-input" placeholder="Título">
+    
+    <input type="text" id="novo-titulo" class="dm-input" placeholder="Título do Local">
+    
+    <select id="novo-cor" class="dm-input">
+        <option value="vermelho">🔴 Vermelho (Padrão)</option>
+        <option value="azul">🔵 Azul (Nobreza/Ventrue)</option>
+        <option value="verde">🟢 Verde (Parques/Gangrel)</option>
+        <option value="roxo">🟣 Roxo (Misticismo/Tremere)</option>
+        <option value="dourado">🟡 Dourado (Igreja/Sagrado)</option>
+        <option value="cinza">⚫ Cinza (Esgotos/Nosferatu)</option>
+    </select>
+
     <textarea id="novo-desc" class="dm-input" rows="3" placeholder="Descrição"></textarea>
-    <button class="btn-ui" style="width:100%" onclick="salvarPonto()">Gravar</button>
+    <button class="btn-ui" style="width:100%" onclick="salvarPonto()">Gravar no Mapa</button>
 </div>
 
 <script>
-    // --- CONFIGURAÇÃO DO FIREBASE (Já preenchi para você!) ---
+    // --- 1. CHAVES
     const firebaseConfig = {
         apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ",
         authDomain: "constantinopla-darkages.firebaseapp.com",
@@ -98,102 +125,133 @@
         appId: "1:193290474936:web:f04bc7108856ef94b42b4d"
     };
 
-    // Inicializa o Firebase (Modo Universal)
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // --- 2. CONFIGURAÇÃO DO MAPA ---
-    // Ajustado para sua imagem 3D Gigante (5906 x 3253)
-    // Se a imagem não aparecer, verifique se o nome do arquivo é exato: 'mapa_final.jpg'
+    // --- 2. MAPA ---
     var imgWidth = 5906;
     var imgHeight = 3253;
     var url = 'mapa_final.jpg';
 
     var map = L.map('map', {
-        crs: L.CRS.Simple,
-        minZoom: -2, maxZoom: 2, attributionControl: false
+        crs: L.CRS.Simple, minZoom: -2, maxZoom: 2, attributionControl: false
     });
     var bounds = [[0,0], [imgHeight, imgWidth]];
     L.imageOverlay(url, bounds).addTo(map);
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // Ícone
-    var iconBlood = L.divIcon({
-        className: 'custom-div-icon',
-        html: "<div style='background-color:#c00; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow: 0 0 10px #f00;'></div>",
-        iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10]
-    });
+    // --- 3. GERADOR DE ÍCONES (SISTEMA DE CORES) ---
+    function criarIcone(cor) {
+        let corHex = '#ff3333'; // Vermelho padrão
+        if (cor === 'azul') corHex = '#3388ff';
+        if (cor === 'verde') corHex = '#2ecc71';
+        if (cor === 'roxo') corHex = '#9b59b6';
+        if (cor === 'dourado') corHex = '#f1c40f';
+        if (cor === 'cinza') corHex = '#95a5a6';
 
-    // --- 3. LÓGICA DO SISTEMA ---
+        return L.divIcon({
+            className: 'custom-div-icon',
+            html: `<div style="background-color:${corHex}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow: 0 0 10px ${corHex};"></div>`,
+            iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10]
+        });
+    }
+
+    // --- 4. LÓGICA DO SISTEMA ---
     var currentUser = null;
     var layerPontos = L.layerGroup().addTo(map);
+    var dadosLocais = []; // Guarda os dados na memória pra redesenhar rápido
     var tempLat = 0, tempLng = 0;
 
-    // Escuta o banco de dados
+    // Escuta o banco de dados e atualiza a variável local
     db.collection("locais").onSnapshot((snapshot) => {
-        layerPontos.clearLayers();
+        dadosLocais = [];
         snapshot.forEach((doc) => {
-            var d = doc.data();
-            var btnDel = currentUser ? `<button onclick="deletar('${doc.id}')" style="float:right; color:red; background:none; border:none; cursor:pointer;">X</button>` : "";
-            
-            L.marker([d.lat, d.lng], {icon: iconBlood}).addTo(layerPontos)
-                .bindPopup(`${btnDel}<span class="popup-title">${d.titulo}</span>${d.desc}`);
+            dadosLocais.push({ id: doc.id, ...doc.data() });
         });
+        renderizarPontos(); // Desenha assim que carrega
     });
 
-    // Clique no mapa
+    // Função que desenha os pontos na tela
+    function renderizarPontos() {
+        layerPontos.clearLayers(); // Limpa pra não duplicar
+        
+        dadosLocais.forEach(d => {
+            // Se tiver logado, mostra o botão de lixeira. Se não, vazio.
+            let btnDel = currentUser ? `<button class="btn-del" onclick="deletar('${d.id}')">EXCLUIR</button>` : "";
+            
+            // Define a cor (se for antigo e não tiver cor, usa vermelho)
+            let cor = d.cor || 'vermelho';
+            
+            L.marker([d.lat, d.lng], {icon: criarIcone(cor)}).addTo(layerPontos)
+                .bindPopup(`
+                    ${btnDel}
+                    <span class="popup-title color-${cor}">${d.titulo}</span>
+                    ${d.desc}
+                `);
+        });
+    }
+
+    // Clique no mapa para adicionar
     map.on('click', function(e){
-        if(!currentUser) return;
+        if(!currentUser) return; // Só mestre pode clicar
         tempLat = Math.round(e.latlng.lat);
         tempLng = Math.round(e.latlng.lng);
         document.getElementById('dm-panel').style.display = 'block';
         document.getElementById('coord-label').innerText = `Coords: ${tempLat}, ${tempLng}`;
+        document.getElementById('novo-titulo').focus();
     });
 
-    // Funções de Ação
-    function salvarPonto() {
+    // Salvar Ponto
+    window.salvarPonto = function() {
         var tit = document.getElementById('novo-titulo').value;
         var desc = document.getElementById('novo-desc').value;
-        if(!tit) return alert("Precisa de título!");
+        var cor = document.getElementById('novo-cor').value; // Pega a cor escolhida
+
+        if(!tit) return alert("Falta o título!");
 
         db.collection("locais").add({
-            lat: tempLat, lng: tempLng, titulo: tit, desc: desc
+            lat: tempLat, lng: tempLng, titulo: tit, desc: desc, cor: cor
         }).then(() => {
             document.getElementById('dm-panel').style.display = 'none';
             document.getElementById('novo-titulo').value = "";
             document.getElementById('novo-desc').value = "";
-        });
+        }).catch(err => alert("Erro ao salvar: " + err));
     }
 
-    // Deletar precisa estar no escopo global window
+    // Deletar Ponto
     window.deletar = function(id) {
-        if(confirm("Apagar este local?")) {
+        if(confirm("Tem certeza que quer apagar este local para sempre?")) {
             db.collection("locais").doc(id).delete();
         }
     };
 
-    // --- 4. LOGIN / LOGOUT ---
-    function abrirLogin() { document.getElementById('login-modal').style.display = 'flex'; }
-    function fecharLogin() { document.getElementById('login-modal').style.display = 'none'; }
+    // --- 5. AUTENTICAÇÃO ---
+    window.abrirLogin = () => document.getElementById('login-modal').style.display = 'flex';
+    window.fecharLogin = () => document.getElementById('login-modal').style.display = 'none';
     
-    function logar() {
+    window.logar = function() {
         var e = document.getElementById('email').value;
         var s = document.getElementById('senha').value;
-        auth.signInWithEmailAndPassword(e, s).then(() => {
-            fecharLogin();
-        }).catch(erro => alert("Erro: " + erro.message));
+        auth.signInWithEmailAndPassword(e, s).then(() => fecharLogin())
+            .catch(erro => alert("Erro: " + erro.message));
     }
 
-    function sair() { auth.signOut(); }
+    window.sair = function() { auth.signOut(); }
 
+    // Monitora se entrou ou saiu (AQUI ESTÁ A CORREÇÃO DO DELETE!)
     auth.onAuthStateChanged((user) => {
         currentUser = user;
+        
+        // Assim que o status muda, a gente REDESENHA o mapa.
+        // Se entrou: redesenha com lixeiras. Se saiu: redesenha sem lixeiras.
+        renderizarPontos(); 
+
         if(user) {
             document.getElementById('btn-login').style.display = 'none';
             document.getElementById('btn-logout').style.display = 'block';
-            document.body.style.border = "2px solid #8a0303";
+            document.body.style.border = "3px solid #8a0303";
         } else {
             document.getElementById('btn-login').style.display = 'block';
             document.getElementById('btn-logout').style.display = 'none';
