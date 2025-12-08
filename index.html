@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -21,7 +23,7 @@
         /* Estilo dos Popups */
         .leaflet-popup-content-wrapper { 
             background: #111; color: #ccc; border: 1px solid #8a0303;
-            box-shadow: 0 0 15px rgba(0,0,0,0.8); font-size: 14px; padding: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.9); font-size: 14px; padding: 5px;
         }
         .leaflet-popup-tip { background: #111; border-top: 1px solid #8a0303; }
         .popup-title { 
@@ -29,7 +31,7 @@
             display: block; border-bottom: 1px solid #444; margin-bottom: 8px;
         }
         
-        /* Cores dinâmicas */
+        /* Cores de Texto para o Popup */
         .color-vermelho { color: #ff3333; }
         .color-azul { color: #3388ff; }
         .color-verde { color: #2ecc71; }
@@ -37,7 +39,22 @@
         .color-dourado { color: #f1c40f; }
         .color-cinza { color: #95a5a6; }
 
-        /* UI Painel */
+        /* Ícones no Mapa */
+        .custom-div-icon {
+            background: transparent;
+            border: none;
+        }
+        .map-icon-inner {
+            display: flex; justify-content: center; align-items: center;
+            width: 24px; height: 24px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 8px currentColor; /* O brilho pega a cor do ícone */
+            font-size: 12px;
+        }
+
+        /* Interface UI */
         #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; }
         .btn-ui { 
             background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #666; 
@@ -51,6 +68,12 @@
             background: #0f0f0f; padding: 20px; z-index: 1000; display: none;
             border: 1px solid #8a0303; box-shadow: 0 0 30px #000;
         }
+        .close-panel {
+            position: absolute; top: 10px; right: 15px;
+            color: #666; cursor: pointer; font-size: 18px; font-weight: bold;
+        }
+        .close-panel:hover { color: #f00; }
+
         .dm-input { 
             width: 100%; margin-bottom: 10px; padding: 10px; background: #222; 
             border: 1px solid #444; color: #fff; box-sizing: border-box; 
@@ -67,13 +90,9 @@
             width: 300px; text-align: center; 
         }
 
-        /* --- NOVO ESTILO DO BOTÃO DELETAR --- */
-        /* Agora ele fica embaixo, grande e vermelho */
+        /* Botão Deletar */
         .btn-del-container {
-            margin-top: 15px;
-            border-top: 1px solid #333;
-            padding-top: 10px;
-            text-align: center;
+            margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; text-align: center;
         }
         .btn-del {
             background: #300; border: 1px solid #600; color: #f00;
@@ -81,7 +100,6 @@
             width: 100%; font-weight: bold; text-transform: uppercase;
         }
         .btn-del:hover { background: #f00; color: white; border-color: #f00; }
-
     </style>
 </head>
 <body>
@@ -105,18 +123,33 @@
 </div>
 
 <div id="dm-panel">
+    <span class="close-panel" onclick="fecharPainel()" title="Cancelar">✕</span>
+
     <h3 style="color:#ff3333; font-family:'Cinzel'; margin-top:0;">Novo Local</h3>
     <div id="coord-label" style="color:#666; font-size:0.8em; margin-bottom:10px;">Clique no mapa...</div>
     
     <input type="text" id="novo-titulo" class="dm-input" placeholder="Título do Local">
     
     <select id="novo-cor" class="dm-input">
-        <option value="vermelho">🔴 Vermelho (Padrão)</option>
-        <option value="azul">🔵 Azul (Nobreza/Ventrue)</option>
-        <option value="verde">🟢 Verde (Parques/Gangrel)</option>
-        <option value="roxo">🟣 Roxo (Misticismo/Tremere)</option>
-        <option value="dourado">🟡 Dourado (Igreja/Sagrado)</option>
-        <option value="cinza">⚫ Cinza (Esgotos/Nosferatu)</option>
+        <option value="vermelho">🔴 Vermelho</option>
+        <option value="azul">🔵 Azul</option>
+        <option value="verde">🟢 Verde</option>
+        <option value="roxo">🟣 Roxo</option>
+        <option value="dourado">🟡 Dourado</option>
+        <option value="cinza">⚫ Cinza</option>
+    </select>
+
+    <select id="novo-tipo" class="dm-input">
+        <option value="padrao">📍 Padrão (Pino)</option>
+        <option value="cruz">✝️ Igreja / Templo</option>
+        <option value="lapide">🪦 Cemitério / Túmulo</option>
+        <option value="mercado">💰 Mercado / Bazar</option>
+        <option value="governo">🏛️ Fórum / Governo</option>
+        <option value="livro">📖 Biblioteca / Arquivo</option>
+        <option value="coroa">👑 Palácio / Nobreza</option>
+        <option value="ancora">⚓ Porto / Doca</option>
+        <option value="taverna">🍺 Taverna / Estalagem</option>
+        <option value="sangue">🩸 Refúgio / Sangue</option>
     </select>
 
     <textarea id="novo-desc" class="dm-input" rows="3" placeholder="Descrição"></textarea>
@@ -124,9 +157,9 @@
 </div>
 
 <script>
-    // --- 1. CHAVES
+    // --- 1. SUA CHAVE JÁ ESTÁ AQUI ---
     const firebaseConfig = {
-        apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ",
+        apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ", 
         authDomain: "constantinopla-darkages.firebaseapp.com",
         projectId: "constantinopla-darkages",
         storageBucket: "constantinopla-darkages.firebasestorage.app",
@@ -151,19 +184,37 @@
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // --- 3. GERADOR DE ÍCONES ---
-    function criarIcone(cor) {
-        let corHex = '#ff3333';
-        if (cor === 'azul') corHex = '#3388ff';
-        if (cor === 'verde') corHex = '#2ecc71';
-        if (cor === 'roxo') corHex = '#9b59b6';
-        if (cor === 'dourado') corHex = '#f1c40f';
-        if (cor === 'cinza') corHex = '#95a5a6';
+    // --- 3. GERADOR DE ÍCONES AVANÇADO ---
+    function criarIcone(cor, tipo) {
+        // Cores Hexadecimais
+        let hex = '#ff3333';
+        if (cor === 'azul') hex = '#3388ff';
+        if (cor === 'verde') hex = '#2ecc71';
+        if (cor === 'roxo') hex = '#9b59b6';
+        if (cor === 'dourado') hex = '#f1c40f';
+        if (cor === 'cinza') hex = '#95a5a6';
 
+        // Mapeamento de Ícones (FontAwesome)
+        let iconClass = 'fa-circle'; // Padrão
+        if (tipo === 'cruz') iconClass = 'fa-cross';
+        if (tipo === 'lapide') iconClass = 'fa-skull'; // Caveira fica mais legal pra Vampiro
+        if (tipo === 'mercado') iconClass = 'fa-coins';
+        if (tipo === 'governo') iconClass = 'fa-landmark';
+        if (tipo === 'livro') iconClass = 'fa-book';
+        if (tipo === 'coroa') iconClass = 'fa-crown';
+        if (tipo === 'ancora') iconClass = 'fa-anchor';
+        if (tipo === 'taverna') iconClass = 'fa-wine-glass';
+        if (tipo === 'sangue') iconClass = 'fa-droplet';
+
+        // Cria o HTML do ícone combinando a cor e o símbolo
         return L.divIcon({
             className: 'custom-div-icon',
-            html: `<div style="background-color:${corHex}; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow: 0 0 10px ${corHex};"></div>`,
-            iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -10]
+            html: `
+                <div class="map-icon-inner" style="border-color:${hex}; color:${hex}; box-shadow: 0 0 8px ${hex}">
+                    <i class="fa-solid ${iconClass}"></i>
+                </div>
+            `,
+            iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -15]
         });
     }
 
@@ -187,18 +238,18 @@
         layerPontos.clearLayers();
         
         dadosLocais.forEach(d => {
-            // Se logado, cria um bloco de HTML separado pro botão
-            let divBotao = currentUser ? 
+            let btnDel = currentUser ? 
                 `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR LOCAL</button></div>` 
                 : "";
             
             let cor = d.cor || 'vermelho';
+            let tipo = d.tipo || 'padrao'; // Se for antigo, assume padrão
             
-            L.marker([d.lat, d.lng], {icon: criarIcone(cor)}).addTo(layerPontos)
+            L.marker([d.lat, d.lng], {icon: criarIcone(cor, tipo)}).addTo(layerPontos)
                 .bindPopup(`
                     <span class="popup-title color-${cor}">${d.titulo}</span>
                     <div style="margin-bottom:5px;">${d.desc}</div>
-                    ${divBotao}
+                    ${btnDel}
                 `);
         });
     }
@@ -213,30 +264,32 @@
         document.getElementById('novo-titulo').focus();
     });
 
+    // Fechar Painel (Função Nova)
+    window.fecharPainel = function() {
+        document.getElementById('dm-panel').style.display = 'none';
+        document.getElementById('novo-titulo').value = "";
+        document.getElementById('novo-desc').value = "";
+    }
+
     // Salvar Ponto
     window.salvarPonto = function() {
         var tit = document.getElementById('novo-titulo').value;
         var desc = document.getElementById('novo-desc').value;
         var cor = document.getElementById('novo-cor').value;
+        var tipo = document.getElementById('novo-tipo').value;
 
         if(!tit) return alert("Falta o título!");
 
         db.collection("locais").add({
-            lat: tempLat, lng: tempLng, titulo: tit, desc: desc, cor: cor
+            lat: tempLat, lng: tempLng, titulo: tit, desc: desc, cor: cor, tipo: tipo
         }).then(() => {
-            document.getElementById('dm-panel').style.display = 'none';
-            document.getElementById('novo-titulo').value = "";
-            document.getElementById('novo-desc').value = "";
+            fecharPainel();
         }).catch(err => alert("Erro ao salvar: " + err));
     }
 
-    // Deletar Ponto (Agora global e blindado)
     window.deletar = function(id) {
-        console.log("Tentando deletar: " + id);
         if(confirm("Tem certeza ABSOLUTA que quer apagar este local?")) {
-            db.collection("locais").doc(id).delete()
-                .then(() => alert("Local apagado com sucesso!"))
-                .catch((error) => alert("Erro ao apagar: " + error));
+            db.collection("locais").doc(id).delete();
         }
     };
 
@@ -257,8 +310,7 @@
 
     auth.onAuthStateChanged((user) => {
         currentUser = user;
-        renderizarPontos(); // Atualiza os botões de delete
-
+        renderizarPontos();
         if(user) {
             document.getElementById('btn-login').style.display = 'none';
             document.getElementById('btn-logout').style.display = 'block';
