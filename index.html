@@ -20,6 +20,16 @@
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: 'Georgia', serif; }
         #map { height: 100vh; width: 100vw; background: #000; }
 
+        /* Estilização do Menu de Camadas (Leaflet Control) */
+        .leaflet-control-layers {
+            background: #111; border: 1px solid #8a0303; color: #ccc;
+            font-family: 'Cinzel', serif; border-radius: 4px;
+            box-shadow: 0 0 10px #000;
+        }
+        .leaflet-control-layers-expanded { padding: 10px; background: rgba(10, 10, 10, 0.95); }
+        .leaflet-control-layers-selector { accent-color: #8a0303; cursor: pointer; }
+        .leaflet-control-layers label span { font-size: 13px; margin-left: 5px; }
+
         /* Estilo dos Popups */
         .leaflet-popup-content-wrapper { 
             background: #111; color: #ccc; border: 1px solid #8a0303;
@@ -33,17 +43,14 @@
             display: block; border-bottom: 1px solid #444; margin-bottom: 8px;
         }
         
-        /* ESTILO DA IMAGEM DENTRO DO POPUP */
         .popup-img-container {
             width: 100%; margin-top: 10px; border: 1px solid #444; border-radius: 4px; overflow: hidden;
         }
         .popup-img {
-            width: 100%; height: auto; display: block;
-            max-height: 200px; /* Limita altura pro celular não ficar só imagem */
-            object-fit: cover; /* Corta o excesso pra ficar bonito */
+            width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover;
         }
 
-        /* Cores */
+        /* Cores de Texto */
         .color-vermelho { color: #ff3333; }
         .color-azul { color: #3388ff; }
         .color-verde { color: #2ecc71; }
@@ -60,7 +67,7 @@
         }
 
         /* UI Painel */
-        #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; }
+        #auth-container { position: absolute; top: 10px; right: 50px; z-index: 1000; } /* Ajustei a posição pra não bater no layer */
         .btn-ui { 
             background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #666; 
             padding: 8px 15px; cursor: pointer; font-family: 'Cinzel', serif; 
@@ -127,10 +134,8 @@
     <div id="coord-label" style="color:#666; font-size:0.8em; margin-bottom:10px;">Clique no mapa...</div>
     
     <input type="text" id="novo-titulo" class="dm-input" placeholder="Título do Local">
-    
     <input type="text" id="novo-img" class="dm-input" placeholder="Link da Imagem (URL)">
-    <div style="font-size:10px; color:#666; margin-top:-8px; margin-bottom:10px;">Cole o link direto de uma imagem (jpg/png) da internet.</div>
-
+    
     <select id="novo-cor" class="dm-input">
         <option value="vermelho">🔴 Vermelho</option>
         <option value="azul">🔵 Azul</option>
@@ -158,6 +163,7 @@
 </div>
 
 <script>
+    // --- 1. CONFIGURAÇÃO (Chave inserida) ---
     const firebaseConfig = {
         apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ", 
         authDomain: "constantinopla-darkages.firebaseapp.com",
@@ -171,7 +177,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // MAPA
+    // --- 2. MAPA ---
     var imgWidth = 5906;
     var imgHeight = 3253;
     var url = 'mapa_final.jpg';
@@ -184,7 +190,24 @@
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // ÍCONES
+    // --- 3. CAMADAS (LAYERS) - A NOVA MÁGICA ---
+    // Criamos grupos vazios para cada categoria
+    var layers = {
+        "Outros": L.layerGroup().addTo(map),
+        "Religião (Cruz)": L.layerGroup().addTo(map),
+        "Mortos (Lápide)": L.layerGroup().addTo(map),
+        "Comércio (Mercado)": L.layerGroup().addTo(map),
+        "Política (Governo/Coroa)": L.layerGroup().addTo(map),
+        "Conhecimento (Livros)": L.layerGroup().addTo(map),
+        "Naval (Porto)": L.layerGroup().addTo(map),
+        "Social (Taverna)": L.layerGroup().addTo(map),
+        "Sangue (Refúgios)": L.layerGroup().addTo(map)
+    };
+
+    // Adiciona o controle de camadas no canto superior direito
+    L.control.layers(null, layers, { collapsed: true }).addTo(map);
+
+    // --- 4. FUNÇÃO ÍCONES ---
     function criarIcone(cor, tipo) {
         let hex = '#ff3333';
         if (cor === 'azul') hex = '#3388ff';
@@ -206,21 +229,17 @@
 
         return L.divIcon({
             className: 'custom-div-icon',
-            html: `
-                <div class="map-icon-inner" style="border-color:${hex}; color:${hex}; box-shadow: 0 0 8px ${hex}">
-                    <i class="fa-solid ${iconClass}"></i>
-                </div>
-            `,
+            html: `<div class="map-icon-inner" style="border-color:${hex}; color:${hex}; box-shadow: 0 0 8px ${hex}"><i class="fa-solid ${iconClass}"></i></div>`,
             iconSize: [24, 24], iconAnchor: [12, 12], popupAnchor: [0, -15]
         });
     }
 
-    // LÓGICA
+    // --- 5. LÓGICA DO SISTEMA ---
     var currentUser = null;
-    var layerPontos = L.layerGroup().addTo(map);
     var dadosLocais = []; 
     var tempLat = 0, tempLng = 0;
 
+    // Escuta o banco de dados
     db.collection("locais").onSnapshot((snapshot) => {
         dadosLocais = [];
         snapshot.forEach((doc) => {
@@ -230,32 +249,42 @@
     });
 
     function renderizarPontos() {
-        layerPontos.clearLayers();
+        // 1. Limpa todas as camadas antes de redesenhar
+        Object.values(layers).forEach(layer => layer.clearLayers());
         
+        // 2. Distribui os pontos nas camadas certas
         dadosLocais.forEach(d => {
-            let btnDel = currentUser ? 
-                `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR LOCAL</button></div>` 
-                : "";
-            
+            let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR LOCAL</button></div>` : "";
             let cor = d.cor || 'vermelho';
             let tipo = d.tipo || 'padrao';
             
-            // LÓGICA DA IMAGEM
             let imagemHTML = "";
             if (d.imgUrl && d.imgUrl.length > 5) {
                 imagemHTML = `<div class="popup-img-container"><img src="${d.imgUrl}" class="popup-img" onerror="this.style.display='none'"></div>`;
             }
 
-            L.marker([d.lat, d.lng], {icon: criarIcone(cor, tipo)}).addTo(layerPontos)
+            let marcador = L.marker([d.lat, d.lng], {icon: criarIcone(cor, tipo)})
                 .bindPopup(`
                     <span class="popup-title color-${cor}">${d.titulo}</span>
                     <div style="margin-bottom:5px;">${d.desc}</div>
                     ${imagemHTML}
                     ${btnDel}
                 `);
+
+            // 3. A Lógica de Distribuição
+            if (tipo === 'cruz') layers["Religião (Cruz)"].addLayer(marcador);
+            else if (tipo === 'lapide') layers["Mortos (Lápide)"].addLayer(marcador);
+            else if (tipo === 'mercado') layers["Comércio (Mercado)"].addLayer(marcador);
+            else if (tipo === 'governo' || tipo === 'coroa') layers["Política (Governo/Coroa)"].addLayer(marcador);
+            else if (tipo === 'livro') layers["Conhecimento (Livros)"].addLayer(marcador);
+            else if (tipo === 'ancora') layers["Naval (Porto)"].addLayer(marcador);
+            else if (tipo === 'taverna') layers["Social (Taverna)"].addLayer(marcador);
+            else if (tipo === 'sangue') layers["Sangue (Refúgios)"].addLayer(marcador);
+            else layers["Outros"].addLayer(marcador); // Padrão
         });
     }
 
+    // Eventos de Clique e UI
     map.on('click', function(e){
         if(!currentUser) return;
         tempLat = Math.round(e.latlng.lat);
@@ -275,7 +304,7 @@
     window.salvarPonto = function() {
         var tit = document.getElementById('novo-titulo').value;
         var desc = document.getElementById('novo-desc').value;
-        var img = document.getElementById('novo-img').value; // Pega o link da imagem
+        var img = document.getElementById('novo-img').value;
         var cor = document.getElementById('novo-cor').value;
         var tipo = document.getElementById('novo-tipo').value;
 
@@ -283,29 +312,24 @@
 
         db.collection("locais").add({
             lat: tempLat, lng: tempLng, titulo: tit, desc: desc, imgUrl: img, cor: cor, tipo: tipo
-        }).then(() => {
-            fecharPainel();
-        }).catch(err => alert("Erro ao salvar: " + err));
+        }).then(() => { fecharPainel(); }).catch(err => alert("Erro: " + err));
     }
 
     window.deletar = function(id) {
-        if(confirm("Tem certeza ABSOLUTA que quer apagar este local?")) {
-            db.collection("locais").doc(id).delete();
-        }
+        if(confirm("Apagar este local?")) db.collection("locais").doc(id).delete();
     };
 
-    // AUTH
+    // Autenticação
     window.abrirLogin = () => document.getElementById('login-modal').style.display = 'flex';
     window.fecharLogin = () => document.getElementById('login-modal').style.display = 'none';
     
     window.logar = function() {
         var e = document.getElementById('email').value;
         var s = document.getElementById('senha').value;
-        auth.signInWithEmailAndPassword(e, s).then(() => fecharLogin())
-            .catch(erro => alert("Erro: " + erro.message));
+        auth.signInWithEmailAndPassword(e, s).then(() => fecharLogin()).catch(e => alert(e.message));
     }
 
-    window.sair = function() { auth.signOut().then(() => alert("Deslogado!")); }
+    window.sair = function() { auth.signOut().then(() => alert("Saiu!")); }
 
     auth.onAuthStateChanged((user) => {
         currentUser = user;
@@ -321,7 +345,6 @@
             document.body.style.border = "none";
         }
     });
-
 </script>
 </body>
 </html>
