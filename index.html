@@ -20,11 +20,12 @@
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: 'Georgia', serif; }
         #map { height: 100vh; width: 100vw; background: #000; }
 
-        /* Estilização do Menu de Camadas (Leaflet Control) */
+        /* Menu de Camadas (Agora na Esquerda) */
         .leaflet-control-layers {
             background: #111; border: 1px solid #8a0303; color: #ccc;
             font-family: 'Cinzel', serif; border-radius: 4px;
             box-shadow: 0 0 10px #000;
+            margin-top: 10px !important; /* Espaçamento extra para desgrudar do Zoom */
         }
         .leaflet-control-layers-expanded { padding: 10px; background: rgba(10, 10, 10, 0.95); }
         .leaflet-control-layers-selector { accent-color: #8a0303; cursor: pointer; }
@@ -50,7 +51,7 @@
             width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover;
         }
 
-        /* Cores de Texto */
+        /* Cores */
         .color-vermelho { color: #ff3333; }
         .color-azul { color: #3388ff; }
         .color-verde { color: #2ecc71; }
@@ -66,8 +67,10 @@
             border: 2px solid #fff; box-shadow: 0 0 8px currentColor; font-size: 12px;
         }
 
-        /* UI Painel */
-        #auth-container { position: absolute; top: 10px; right: 50px; z-index: 1000; } /* Ajustei a posição pra não bater no layer */
+        /* UI Painel e Login */
+        /* Voltei o botão de login pra direita absoluta, já que o menu saiu de lá */
+        #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; } 
+        
         .btn-ui { 
             background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #666; 
             padding: 8px 15px; cursor: pointer; font-family: 'Cinzel', serif; 
@@ -190,8 +193,7 @@
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // --- 3. CAMADAS (LAYERS) - A NOVA MÁGICA ---
-    // Criamos grupos vazios para cada categoria
+    // --- 3. CAMADAS (LAYERS) ---
     var layers = {
         "Outros": L.layerGroup().addTo(map),
         "Religião (Cruz)": L.layerGroup().addTo(map),
@@ -204,8 +206,9 @@
         "Sangue (Refúgios)": L.layerGroup().addTo(map)
     };
 
-    // Adiciona o controle de camadas no canto superior direito
-    L.control.layers(null, layers, { collapsed: true }).addTo(map);
+    // POSIÇÃO DO MENU: Mudei para 'topleft' (Canto Superior Esquerdo)
+    // O Leaflet coloca ele automaticamente ABAIXO do Zoom.
+    L.control.layers(null, layers, { collapsed: true, position: 'topleft' }).addTo(map);
 
     // --- 4. FUNÇÃO ÍCONES ---
     function criarIcone(cor, tipo) {
@@ -239,7 +242,6 @@
     var dadosLocais = []; 
     var tempLat = 0, tempLng = 0;
 
-    // Escuta o banco de dados
     db.collection("locais").onSnapshot((snapshot) => {
         dadosLocais = [];
         snapshot.forEach((doc) => {
@@ -249,10 +251,8 @@
     });
 
     function renderizarPontos() {
-        // 1. Limpa todas as camadas antes de redesenhar
         Object.values(layers).forEach(layer => layer.clearLayers());
         
-        // 2. Distribui os pontos nas camadas certas
         dadosLocais.forEach(d => {
             let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR LOCAL</button></div>` : "";
             let cor = d.cor || 'vermelho';
@@ -271,7 +271,6 @@
                     ${btnDel}
                 `);
 
-            // 3. A Lógica de Distribuição
             if (tipo === 'cruz') layers["Religião (Cruz)"].addLayer(marcador);
             else if (tipo === 'lapide') layers["Mortos (Lápide)"].addLayer(marcador);
             else if (tipo === 'mercado') layers["Comércio (Mercado)"].addLayer(marcador);
@@ -280,11 +279,10 @@
             else if (tipo === 'ancora') layers["Naval (Porto)"].addLayer(marcador);
             else if (tipo === 'taverna') layers["Social (Taverna)"].addLayer(marcador);
             else if (tipo === 'sangue') layers["Sangue (Refúgios)"].addLayer(marcador);
-            else layers["Outros"].addLayer(marcador); // Padrão
+            else layers["Outros"].addLayer(marcador);
         });
     }
 
-    // Eventos de Clique e UI
     map.on('click', function(e){
         if(!currentUser) return;
         tempLat = Math.round(e.latlng.lat);
@@ -319,7 +317,6 @@
         if(confirm("Apagar este local?")) db.collection("locais").doc(id).delete();
     };
 
-    // Autenticação
     window.abrirLogin = () => document.getElementById('login-modal').style.display = 'flex';
     window.fecharLogin = () => document.getElementById('login-modal').style.display = 'none';
     
