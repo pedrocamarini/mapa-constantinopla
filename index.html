@@ -137,7 +137,7 @@
     
     <div style="display:flex; gap:5px; margin-bottom:10px;">
         <button class="btn-ui" style="flex:1; background:#444;" onclick="desfazerUltimoPonto()">↩ Desfazer</button>
-        <button class="btn-ui" style="flex:1;" onclick="salvarTerritorio()">💾 GRAVAR</button>
+        <button id="btn-gravar-poly" class="btn-ui" style="flex:1;" onclick="salvarTerritorio()">💾 GRAVAR</button>
     </div>
     <button class="btn-ui" style="width:100%; background:#333; border-color:#666;" onclick="cancelarDesenho()">Cancelar Tudo</button>
 </div>
@@ -285,6 +285,7 @@
         document.getElementById('novo-titulo').focus();
     });
 
+    // --- FUNÇÃO DE SALVAR CORRIGIDA ---
     window.salvarTerritorio = async function() {
         try {
             if(pontosDesenho.length < 3) return alert("Marque pelo menos 3 pontos.");
@@ -293,32 +294,32 @@
             let cor = document.getElementById('poly-cor').value;
             let desc = document.getElementById('poly-desc').value || "";
 
-            // --- A MÁGICA DE LIMPEZA ---
-            // Convertemos cada coordenada para um número puro, sem objetos do Leaflet
-            let pontosLimpos = pontosDesenho.map(p => {
-                return [Number(p[0]), Number(p[1])];
-            });
+            // Limpa os dados para garantir que são números
+            let pontosLimpos = pontosDesenho.map(p => [Number(p[0]), Number(p[1])]);
 
-            // Feedback visual
-            let btn = document.querySelector("#poly-panel button:nth-child(6)");
+            // SELECIONA O BOTÃO PELO ID (A CORREÇÃO ESTÁ AQUI!)
+            let btn = document.getElementById("btn-gravar-poly");
             let txtAntigo = btn.innerText;
             btn.innerText = "Salvando...";
 
             await db.collection("locais").add({
                 tipo: "poligono",
-                pontos: pontosLimpos, // Agora é uma lista de números puros
+                pontos: pontosLimpos,
                 titulo: tit,
                 desc: desc,
                 cor: cor
             });
 
-            alert("Território salvo com sucesso!");
+            // Sucesso!
             btn.innerText = txtAntigo;
             cancelarDesenho();
 
         } catch (error) {
             console.error(error);
             alert("ERRO AO SALVAR: " + error.message);
+            // Se der erro, volta o texto do botão
+            let btn = document.getElementById("btn-gravar-poly");
+            if(btn) btn.innerText = "💾 GRAVAR";
         }
     }
 
