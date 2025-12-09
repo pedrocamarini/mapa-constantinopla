@@ -64,26 +64,22 @@
         }
         .btn-ui:hover { background: #8a0303; color: #fff; box-shadow: 0 0 15px #8a0303; }
         
-        /* Painel Padrão (Pinos) */
+        /* Painéis */
         #dm-panel {
             position: absolute; top: 60px; right: 10px; width: 300px;
             background: #0f0f0f; padding: 20px; z-index: 1000; display: none;
             border: 1px solid #8a0303; box-shadow: 0 0 30px #000;
         }
-
-        /* Painel de Desenho de Território */
         #poly-panel {
             position: absolute; top: 60px; right: 10px; width: 250px;
             background: #1a0505; padding: 15px; z-index: 1001; display: none;
             border: 2px solid #ff3333; box-shadow: 0 0 30px #000;
         }
         #poly-status { color: #ccc; font-size: 12px; margin-bottom: 10px; text-align: center; }
-
+        
         .close-panel { position: absolute; top: 10px; right: 15px; color: #666; cursor: pointer; font-size: 18px; }
-        .close-panel:hover { color: #f00; }
         .dm-input { width: 100%; margin-bottom: 10px; padding: 10px; background: #222; border: 1px solid #444; color: #fff; box-sizing: border-box; }
         
-        /* Login Modal */
         #login-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); z-index: 2000; display: none; 
@@ -125,46 +121,18 @@
     <h3 style="color:#ff3333; font-family:'Cinzel'; margin-top:0;">Novo Local</h3>
     <input type="text" id="novo-titulo" class="dm-input" placeholder="Título">
     <input type="text" id="novo-img" class="dm-input" placeholder="Link da Imagem (URL)">
-    
-    <select id="novo-cor" class="dm-input">
-        <option value="vermelho">🔴 Vermelho</option>
-        <option value="azul">🔵 Azul</option>
-        <option value="verde">🟢 Verde</option>
-        <option value="roxo">🟣 Roxo</option>
-        <option value="dourado">🟡 Dourado</option>
-        <option value="cinza">⚫ Cinza</option>
-    </select>
-
-    <select id="novo-tipo" class="dm-input">
-        <option value="padrao">📍 Padrão (Pino)</option>
-        <option value="cruz">✝️ Igreja / Templo</option>
-        <option value="lapide">🪦 Cemitério</option>
-        <option value="mercado">💰 Mercado</option>
-        <option value="governo">🏛️ Governo</option>
-        <option value="livro">📖 Biblioteca</option>
-        <option value="coroa">👑 Nobreza</option>
-        <option value="ancora">⚓ Porto</option>
-        <option value="taverna">🍺 Taverna</option>
-        <option value="sangue">🩸 Refúgio</option>
-    </select>
-
+    <select id="novo-cor" class="dm-input"><option value="vermelho">🔴 Vermelho</option><option value="azul">🔵 Azul</option><option value="verde">🟢 Verde</option><option value="roxo">🟣 Roxo</option><option value="dourado">🟡 Dourado</option><option value="cinza">⚫ Cinza</option></select>
+    <select id="novo-tipo" class="dm-input"><option value="padrao">📍 Padrão</option><option value="cruz">✝️ Templo</option><option value="lapide">🪦 Cemitério</option><option value="mercado">💰 Mercado</option><option value="governo">🏛️ Governo</option><option value="livro">📖 Biblioteca</option><option value="coroa">👑 Nobreza</option><option value="ancora">⚓ Porto</option><option value="taverna">🍺 Taverna</option><option value="sangue">🩸 Refúgio</option></select>
     <textarea id="novo-desc" class="dm-input" rows="3" placeholder="Descrição"></textarea>
     <button class="btn-ui" style="width:100%" onclick="salvarPonto()">Gravar Local</button>
 </div>
 
 <div id="poly-panel">
     <h3 style="color:#ff3333; font-family:'Cinzel'; margin:0 0 10px 0;">Desenhando...</h3>
-    <div id="poly-status">Clique no mapa para traçar linhas.</div>
+    <div id="poly-status">Clique no mapa para traçar.</div>
     
     <input type="text" id="poly-titulo" class="dm-input" placeholder="Nome do Território">
-    <select id="poly-cor" class="dm-input" onchange="atualizarPreviewCor()">
-        <option value="vermelho">🔴 Vermelho</option>
-        <option value="azul">🔵 Azul</option>
-        <option value="verde">🟢 Verde</option>
-        <option value="roxo">🟣 Roxo</option>
-        <option value="dourado">🟡 Dourado</option>
-        <option value="cinza">⚫ Cinza</option>
-    </select>
+    <select id="poly-cor" class="dm-input" onchange="atualizarPreviewCor()"><option value="vermelho">🔴 Vermelho</option><option value="azul">🔵 Azul</option><option value="verde">🟢 Verde</option><option value="roxo">🟣 Roxo</option><option value="dourado">🟡 Dourado</option><option value="cinza">⚫ Cinza</option></select>
     <textarea id="poly-desc" class="dm-input" rows="2" placeholder="Descrição"></textarea>
     
     <div style="display:flex; gap:5px; margin-bottom:10px;">
@@ -175,6 +143,7 @@
 </div>
 
 <script>
+    // --- CHAVE DA API ---
     const firebaseConfig = {
         apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ", 
         authDomain: "constantinopla-darkages.firebaseapp.com",
@@ -188,7 +157,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // MAPA
+    // --- MAPA ---
     var imgWidth = 5906;
     var imgHeight = 3253;
     var url = 'mapa_final.jpg';
@@ -201,7 +170,7 @@
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // CAMADAS
+    // --- CAMADAS ---
     var layers = {
         "Territórios": L.layerGroup().addTo(map),
         "Outros": L.layerGroup().addTo(map),
@@ -216,7 +185,7 @@
     };
     L.control.layers(null, layers, { collapsed: true, position: 'topleft' }).addTo(map);
 
-    // FUNÇÕES DE COR
+    // --- CORES & ÍCONES ---
     function getHexCor(cor) {
         if (cor === 'azul') return '#3388ff';
         if (cor === 'verde') return '#2ecc71';
@@ -246,10 +215,10 @@
         });
     }
 
-    // --- LÓGICA DE DESENHO (AGORA COM LINHAS) ---
+    // --- LÓGICA DE DESENHO BLINDADA ---
     var modoDesenho = false;
     var pontosDesenho = [];
-    var linhaTemporaria = null; // Usamos Polyline (linha) em vez de Polygon (forma cheia)
+    var linhaTemporaria = null;
     var marcadoresTemporarios = []; 
 
     window.iniciarDesenho = function() {
@@ -257,7 +226,7 @@
         modoDesenho = true;
         pontosDesenho = [];
         document.getElementById('poly-panel').style.display = 'block';
-        document.getElementById('poly-status').innerText = "Clique para desenhar o contorno.";
+        document.getElementById('poly-status').innerText = "Clique para desenhar.";
         map.getContainer().style.cursor = 'crosshair';
     }
 
@@ -271,16 +240,12 @@
         map.getContainer().style.cursor = '';
     }
     
-    // Função nova: Desfazer (Ctrl+Z style)
     window.desfazerUltimoPonto = function() {
         if(pontosDesenho.length > 0) {
-            pontosDesenho.pop(); // Remove o último dado
+            pontosDesenho.pop();
             redesenharLinhaTemporaria();
-            
-            // Remove a última bolinha
             let ultimaBolinha = marcadoresTemporarios.pop();
             if(ultimaBolinha) map.removeLayer(ultimaBolinha);
-            
             document.getElementById('poly-status').innerText = `${pontosDesenho.length} pontos marcados.`;
         }
     }
@@ -294,14 +259,8 @@
     
     function redesenharLinhaTemporaria() {
         if(linhaTemporaria) map.removeLayer(linhaTemporaria);
-        
         let cor = document.getElementById('poly-cor').value;
-        let hex = getHexCor(cor);
-        
-        // Desenha apenas a LINHA (polyline), sem preenchimento
-        linhaTemporaria = L.polyline(pontosDesenho, {
-            color: hex, weight: 3, dashArray: '5, 10'
-        }).addTo(map);
+        linhaTemporaria = L.polyline(pontosDesenho, { color: getHexCor(cor), weight: 3, dashArray: '5, 10' }).addTo(map);
     }
 
     map.on('click', function(e){
@@ -312,15 +271,9 @@
             let lat = e.latlng.lat;
             let lng = e.latlng.lng;
             pontosDesenho.push([lat, lng]);
-
             redesenharLinhaTemporaria();
-
-            // Bolinha visual onde clicou
-            let bolinha = L.circleMarker([lat, lng], {
-                radius: 4, color: '#fff', fillOpacity: 1
-            }).addTo(map);
+            let bolinha = L.circleMarker([lat, lng], { radius: 4, color: '#fff', fillOpacity: 1 }).addTo(map);
             marcadoresTemporarios.push(bolinha);
-
             document.getElementById('poly-status').innerText = `${pontosDesenho.length} pontos marcados.`;
             return;
         }
@@ -329,137 +282,112 @@
         tempLat = Math.round(e.latlng.lat);
         tempLng = Math.round(e.latlng.lng);
         document.getElementById('dm-panel').style.display = 'block';
-        document.getElementById('coord-label').innerText = `Coords: ${tempLat}, ${tempLng}`;
         document.getElementById('novo-titulo').focus();
     });
 
-    window.salvarTerritorio = function() {
-        if(pontosDesenho.length < 3) return alert("Marque pelo menos 3 pontos para fechar uma área.");
-        
-        let tit = document.getElementById('poly-titulo').value;
-        let cor = document.getElementById('poly-cor').value;
-        let desc = document.getElementById('poly-desc').value;
+    window.salvarTerritorio = async function() {
+        try {
+            if(pontosDesenho.length < 3) return alert("Marque pelo menos 3 pontos.");
+            
+            let tit = document.getElementById('poly-titulo').value || "Território Sem Nome";
+            let cor = document.getElementById('poly-cor').value;
+            let desc = document.getElementById('poly-desc').value || "";
 
-        if(!tit) return alert("Dê um nome ao território.");
+            // --- A MÁGICA DE LIMPEZA ---
+            // Convertemos cada coordenada para um número puro, sem objetos do Leaflet
+            let pontosLimpos = pontosDesenho.map(p => {
+                return [Number(p[0]), Number(p[1])];
+            });
 
-        // Feedback Visual
-        let btn = document.querySelector("#poly-panel button:nth-child(6)"); // Botão gravar
-        let textoOriginal = btn.innerText;
-        btn.innerText = "Salvando...";
-        
-        // Converter para objeto puro pra garantir que o Firebase aceite
-        // Às vezes o Firebase rejeita objetos complexos do Leaflet
-        let pontosLimpos = pontosDesenho.map(p => [Number(p[0]), Number(p[1])]);
+            // Feedback visual
+            let btn = document.querySelector("#poly-panel button:nth-child(6)");
+            let txtAntigo = btn.innerText;
+            btn.innerText = "Salvando...";
 
-        db.collection("locais").add({
-            tipo: "poligono",
-            pontos: pontosLimpos, 
-            titulo: tit,
-            desc: desc,
-            cor: cor
-        }).then(() => {
-            btn.innerText = textoOriginal;
+            await db.collection("locais").add({
+                tipo: "poligono",
+                pontos: pontosLimpos, // Agora é uma lista de números puros
+                titulo: tit,
+                desc: desc,
+                cor: cor
+            });
+
+            alert("Território salvo com sucesso!");
+            btn.innerText = txtAntigo;
             cancelarDesenho();
-        }).catch(err => {
-            alert("Erro ao salvar: " + err);
-            btn.innerText = textoOriginal;
-        });
+
+        } catch (error) {
+            console.error(error);
+            alert("ERRO AO SALVAR: " + error.message);
+        }
     }
 
     // --- RENDERIZAÇÃO ---
     var currentUser = null;
-    var dadosLocais = []; 
     var tempLat = 0, tempLng = 0;
 
     db.collection("locais").onSnapshot((snapshot) => {
-        dadosLocais = [];
-        snapshot.forEach((doc) => {
-            dadosLocais.push({ id: doc.id, ...doc.data() });
-        });
-        renderizarTudo();
-    });
-
-    function renderizarTudo() {
-        Object.values(layers).forEach(layer => layer.clearLayers());
+        Object.values(layers).forEach(layer => layer.clearLayers()); // Limpa tudo
         
-        dadosLocais.forEach(d => {
-            let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR</button></div>` : "";
+        snapshot.forEach((doc) => {
+            let d = doc.data();
+            let id = doc.id;
+            let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${id}')">🗑️ EXCLUIR</button></div>` : "";
             let cor = d.cor || 'vermelho';
             let hex = getHexCor(cor);
             
-            if(d.tipo === 'poligono') {
-                // Aqui sim desenhamos como POLIGONO (fechado e colorido)
+            if(d.tipo === 'poligono' && d.pontos) {
+                // Desenha Polígono
                 let poligono = L.polygon(d.pontos, {
                     color: hex, fillColor: hex, fillOpacity: 0.35, weight: 2
                 });
-                
-                poligono.bindPopup(`
-                    <span class="popup-title" style="color:${hex}">${d.titulo}</span>
-                    <div>${d.desc}</div>
-                    ${btnDel}
-                `);
-                
+                poligono.bindPopup(`<span class="popup-title" style="color:${hex}">${d.titulo}</span><div>${d.desc}</div>${btnDel}`);
                 layers["Territórios"].addLayer(poligono);
-            
             } else { 
+                // Desenha Pino
                 let tipoIcone = d.tipo || 'padrao';
-                let imagemHTML = "";
-                if (d.imgUrl && d.imgUrl.length > 5) {
-                    imagemHTML = `<div class="popup-img-container"><img src="${d.imgUrl}" class="popup-img" onerror="this.style.display='none'"></div>`;
-                }
-
+                let imagemHTML = (d.imgUrl && d.imgUrl.length > 5) ? `<div class="popup-img-container"><img src="${d.imgUrl}" class="popup-img" onerror="this.style.display='none'"></div>` : "";
+                
                 let marcador = L.marker([d.lat, d.lng], {icon: criarIcone(cor, tipoIcone)})
-                    .bindPopup(`
-                        <span class="popup-title color-${cor}">${d.titulo}</span>
-                        <div>${d.desc}</div>
-                        ${imagemHTML}
-                        ${btnDel}
-                    `);
+                    .bindPopup(`<span class="popup-title color-${cor}">${d.titulo}</span><div>${d.desc}</div>${imagemHTML}${btnDel}`);
 
-                if (tipoIcone === 'cruz') layers["Religião (Cruz)"].addLayer(marcador);
-                else if (tipoIcone === 'lapide') layers["Mortos (Lápide)"].addLayer(marcador);
-                else if (tipoIcone === 'mercado') layers["Comércio (Mercado)"].addLayer(marcador);
-                else if (tipoIcone === 'governo' || tipoIcone === 'coroa') layers["Política"].addLayer(marcador);
-                else if (tipoIcone === 'livro') layers["Conhecimento"].addLayer(marcador);
-                else if (tipoIcone === 'ancora') layers["Naval"].addLayer(marcador);
-                else if (tipoIcone === 'taverna') layers["Social"].addLayer(marcador);
-                else if (tipoIcone === 'sangue') layers["Sangue"].addLayer(marcador);
-                else layers["Outros"].addLayer(marcador);
+                // Distribui nas camadas
+                let layerDestino = layers["Outros"];
+                if (tipoIcone === 'cruz') layerDestino = layers["Religião (Cruz)"];
+                else if (tipoIcone === 'lapide') layerDestino = layers["Mortos (Lápide)"];
+                else if (tipoIcone === 'mercado') layerDestino = layers["Comércio (Mercado)"];
+                else if (tipoIcone === 'governo' || tipoIcone === 'coroa') layerDestino = layers["Política"];
+                else if (tipoIcone === 'livro') layerDestino = layers["Conhecimento"];
+                else if (tipoIcone === 'ancora') layerDestino = layers["Naval"];
+                else if (tipoIcone === 'taverna') layerDestino = layers["Social"];
+                else if (tipoIcone === 'sangue') layerDestino = layers["Sangue"];
+                
+                layerDestino.addLayer(marcador);
             }
         });
-    }
+    });
 
     // UI
     window.fecharPainel = function() {
         document.getElementById('dm-panel').style.display = 'none';
-        document.getElementById('novo-titulo').value = "";
-        document.getElementById('novo-desc').value = "";
-        document.getElementById('novo-img').value = "";
+        document.getElementById('novo-titulo').value = ""; document.getElementById('novo-desc').value = ""; document.getElementById('novo-img').value = "";
     }
     window.salvarPonto = function() {
         var tit = document.getElementById('novo-titulo').value;
-        var desc = document.getElementById('novo-desc').value;
-        var img = document.getElementById('novo-img').value;
-        var cor = document.getElementById('novo-cor').value;
-        var tipo = document.getElementById('novo-tipo').value;
         if(!tit) return alert("Falta o título!");
         db.collection("locais").add({
-            lat: tempLat, lng: tempLng, titulo: tit, desc: desc, imgUrl: img, cor: cor, tipo: tipo
+            lat: tempLat, lng: tempLng, titulo: tit, desc: document.getElementById('novo-desc').value, 
+            imgUrl: document.getElementById('novo-img').value, cor: document.getElementById('novo-cor').value, tipo: document.getElementById('novo-tipo').value
         }).then(() => { fecharPainel(); });
     }
     window.deletar = function(id) { if(confirm("Apagar item?")) db.collection("locais").doc(id).delete(); };
     window.abrirLogin = () => document.getElementById('login-modal').style.display = 'flex';
     window.fecharLogin = () => document.getElementById('login-modal').style.display = 'none';
-    window.logar = function() {
-        var e = document.getElementById('email').value;
-        var s = document.getElementById('senha').value;
-        auth.signInWithEmailAndPassword(e, s).then(() => fecharLogin()).catch(e => alert(e.message));
-    }
+    window.logar = function() { auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('senha').value).then(() => fecharLogin()).catch(e => alert(e.message)); }
     window.sair = function() { auth.signOut().then(() => alert("Saiu!")); }
 
     auth.onAuthStateChanged((user) => {
         currentUser = user;
-        renderizarTudo();
         if(user) {
             document.getElementById('btn-login').style.display = 'none';
             document.getElementById('btn-draw').style.display = 'block';
