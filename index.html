@@ -20,7 +20,7 @@
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: 'Georgia', serif; }
         #map { height: 100vh; width: 100vw; background: #000; }
 
-        /* Menu de Camadas (Esquerda) */
+        /* Menu de Camadas */
         .leaflet-control-layers {
             background: #111; border: 1px solid #8a0303; color: #ccc;
             font-family: 'Cinzel', serif; border-radius: 4px;
@@ -90,6 +90,7 @@
             justify-content: center; align-items: center;
         }
         .login-box { background: #111; padding: 30px; border: 2px solid #8a0303; width: 300px; text-align: center; }
+        
         .btn-del-container { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; text-align: center; }
         .btn-del {
             background: #300; border: 1px solid #600; color: #f00; width: 100%;
@@ -153,7 +154,7 @@
 
 <div id="poly-panel">
     <h3 style="color:#ff3333; font-family:'Cinzel'; margin:0 0 10px 0;">Desenhando...</h3>
-    <div id="poly-status">Clique no mapa para adicionar pontos.</div>
+    <div id="poly-status">Clique no mapa para traçar linhas.</div>
     
     <input type="text" id="poly-titulo" class="dm-input" placeholder="Nome do Território">
     <select id="poly-cor" class="dm-input" onchange="atualizarPreviewCor()">
@@ -166,12 +167,14 @@
     </select>
     <textarea id="poly-desc" class="dm-input" rows="2" placeholder="Descrição"></textarea>
     
-    <button class="btn-ui" style="width:100%; margin-bottom:10px;" onclick="salvarTerritorio()">💾 GRAVAR TERRITÓRIO</button>
-    <button class="btn-ui" style="width:100%; background:#333; border-color:#666;" onclick="cancelarDesenho()">Cancelar</button>
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
+        <button class="btn-ui" style="flex:1; background:#444;" onclick="desfazerUltimoPonto()">↩ Desfazer</button>
+        <button class="btn-ui" style="flex:1;" onclick="salvarTerritorio()">💾 GRAVAR</button>
+    </div>
+    <button class="btn-ui" style="width:100%; background:#333; border-color:#666;" onclick="cancelarDesenho()">Cancelar Tudo</button>
 </div>
 
 <script>
-    // --- 1. CONFIGURAÇÃO ---
     const firebaseConfig = {
         apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ", 
         authDomain: "constantinopla-darkages.firebaseapp.com",
@@ -185,7 +188,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // --- 2. MAPA ---
+    // MAPA
     var imgWidth = 5906;
     var imgHeight = 3253;
     var url = 'mapa_final.jpg';
@@ -198,9 +201,9 @@
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // --- 3. CAMADAS ---
+    // CAMADAS
     var layers = {
-        "Territórios": L.layerGroup().addTo(map), // Nova camada!
+        "Territórios": L.layerGroup().addTo(map),
         "Outros": L.layerGroup().addTo(map),
         "Religião (Cruz)": L.layerGroup().addTo(map),
         "Mortos (Lápide)": L.layerGroup().addTo(map),
@@ -213,14 +216,14 @@
     };
     L.control.layers(null, layers, { collapsed: true, position: 'topleft' }).addTo(map);
 
-    // --- 4. FUNÇÕES DE SUPORTE (Cores e Ícones) ---
+    // FUNÇÕES DE COR
     function getHexCor(cor) {
         if (cor === 'azul') return '#3388ff';
         if (cor === 'verde') return '#2ecc71';
         if (cor === 'roxo') return '#9b59b6';
         if (cor === 'dourado') return '#f1c40f';
         if (cor === 'cinza') return '#95a5a6';
-        return '#ff3333'; // Padrão
+        return '#ff3333';
     }
 
     function criarIcone(cor, tipo) {
@@ -243,70 +246,86 @@
         });
     }
 
-    // --- 5. LÓGICA DE DESENHO (TERRITÓRIOS) ---
+    // --- LÓGICA DE DESENHO (AGORA COM LINHAS) ---
     var modoDesenho = false;
     var pontosDesenho = [];
-    var poligonoTemporario = null;
-    var marcadoresTemporarios = []; // Bolinhas brancas pra ver onde clicou
+    var linhaTemporaria = null; // Usamos Polyline (linha) em vez de Polygon (forma cheia)
+    var marcadoresTemporarios = []; 
 
     window.iniciarDesenho = function() {
-        fecharPainel(); // Fecha painel de pinos se tiver aberto
+        fecharPainel();
         modoDesenho = true;
         pontosDesenho = [];
         document.getElementById('poly-panel').style.display = 'block';
-        document.getElementById('poly-status').innerText = "Clique no mapa para começar o traçado.";
+        document.getElementById('poly-status').innerText = "Clique para desenhar o contorno.";
         map.getContainer().style.cursor = 'crosshair';
     }
 
     window.cancelarDesenho = function() {
         modoDesenho = false;
         pontosDesenho = [];
-        if(poligonoTemporario) map.removeLayer(poligonoTemporario);
+        if(linhaTemporaria) map.removeLayer(linhaTemporaria);
         marcadoresTemporarios.forEach(m => map.removeLayer(m));
         marcadoresTemporarios = [];
         document.getElementById('poly-panel').style.display = 'none';
         map.getContainer().style.cursor = '';
     }
-
-    window.atualizarPreviewCor = function() {
-        if(poligonoTemporario) {
-            let cor = document.getElementById('poly-cor').value;
-            poligonoTemporario.setStyle({ color: getHexCor(cor), fillColor: getHexCor(cor) });
+    
+    // Função nova: Desfazer (Ctrl+Z style)
+    window.desfazerUltimoPonto = function() {
+        if(pontosDesenho.length > 0) {
+            pontosDesenho.pop(); // Remove o último dado
+            redesenharLinhaTemporaria();
+            
+            // Remove a última bolinha
+            let ultimaBolinha = marcadoresTemporarios.pop();
+            if(ultimaBolinha) map.removeLayer(ultimaBolinha);
+            
+            document.getElementById('poly-status').innerText = `${pontosDesenho.length} pontos marcados.`;
         }
     }
 
-    // Clique no Mapa (Controla tanto Pinos quanto Polígonos)
-    map.on('click', function(e){
-        if(!currentUser) return; // Só mestre
+    window.atualizarPreviewCor = function() {
+        if(linhaTemporaria) {
+            let cor = document.getElementById('poly-cor').value;
+            linhaTemporaria.setStyle({ color: getHexCor(cor) });
+        }
+    }
+    
+    function redesenharLinhaTemporaria() {
+        if(linhaTemporaria) map.removeLayer(linhaTemporaria);
+        
+        let cor = document.getElementById('poly-cor').value;
+        let hex = getHexCor(cor);
+        
+        // Desenha apenas a LINHA (polyline), sem preenchimento
+        linhaTemporaria = L.polyline(pontosDesenho, {
+            color: hex, weight: 3, dashArray: '5, 10'
+        }).addTo(map);
+    }
 
-        // LÓGICA A: Modo Desenho (Polígono)
+    map.on('click', function(e){
+        if(!currentUser) return;
+
+        // MODO DESENHO
         if(modoDesenho) {
             let lat = e.latlng.lat;
             let lng = e.latlng.lng;
             pontosDesenho.push([lat, lng]);
 
-            // Desenha/Atualiza o polígono visual enquanto clica
-            let cor = document.getElementById('poly-cor').value;
-            let hex = getHexCor(cor);
+            redesenharLinhaTemporaria();
 
-            // Se já existe, remove pra redesenhar
-            if(poligonoTemporario) map.removeLayer(poligonoTemporario);
-            
-            poligonoTemporario = L.polygon(pontosDesenho, {
-                color: hex, fillColor: hex, fillOpacity: 0.3, weight: 2
-            }).addTo(map);
-
-            // Adiciona uma bolinha pequena onde clicou pra ver o vértice
+            // Bolinha visual onde clicou
             let bolinha = L.circleMarker([lat, lng], {
-                radius: 3, color: '#fff', fillOpacity: 1
+                radius: 4, color: '#fff', fillOpacity: 1
             }).addTo(map);
             marcadoresTemporarios.push(bolinha);
 
-            document.getElementById('poly-status').innerText = `${pontosDesenho.length} pontos marcados. Continue ou Grave.`;
+            document.getElementById('poly-status').innerText = `${pontosDesenho.length} pontos marcados.`;
             return;
         }
 
-        // LÓGICA B: Modo Padrão (Pinos)
+        // MODO PINO
         tempLat = Math.round(e.latlng.lat);
         tempLng = Math.round(e.latlng.lng);
         document.getElementById('dm-panel').style.display = 'block';
@@ -315,7 +334,7 @@
     });
 
     window.salvarTerritorio = function() {
-        if(pontosDesenho.length < 3) return alert("Um território precisa de pelo menos 3 pontos!");
+        if(pontosDesenho.length < 3) return alert("Marque pelo menos 3 pontos para fechar uma área.");
         
         let tit = document.getElementById('poly-titulo').value;
         let cor = document.getElementById('poly-cor').value;
@@ -323,19 +342,31 @@
 
         if(!tit) return alert("Dê um nome ao território.");
 
-        // Salva com um "tipo" especial
+        // Feedback Visual
+        let btn = document.querySelector("#poly-panel button:nth-child(6)"); // Botão gravar
+        let textoOriginal = btn.innerText;
+        btn.innerText = "Salvando...";
+        
+        // Converter para objeto puro pra garantir que o Firebase aceite
+        // Às vezes o Firebase rejeita objetos complexos do Leaflet
+        let pontosLimpos = pontosDesenho.map(p => [Number(p[0]), Number(p[1])]);
+
         db.collection("locais").add({
-            tipo: "poligono", // Identificador
-            pontos: pontosDesenho, // Array de coordenadas
+            tipo: "poligono",
+            pontos: pontosLimpos, 
             titulo: tit,
             desc: desc,
             cor: cor
         }).then(() => {
-            cancelarDesenho(); // Limpa e volta ao normal
-        }).catch(err => alert("Erro: " + err));
+            btn.innerText = textoOriginal;
+            cancelarDesenho();
+        }).catch(err => {
+            alert("Erro ao salvar: " + err);
+            btn.innerText = textoOriginal;
+        });
     }
 
-    // --- 6. RENDERIZAÇÃO DO BANCO ---
+    // --- RENDERIZAÇÃO ---
     var currentUser = null;
     var dadosLocais = []; 
     var tempLat = 0, tempLng = 0;
@@ -356,8 +387,8 @@
             let cor = d.cor || 'vermelho';
             let hex = getHexCor(cor);
             
-            // --- É UM POLÍGONO? ---
             if(d.tipo === 'poligono') {
+                // Aqui sim desenhamos como POLIGONO (fechado e colorido)
                 let poligono = L.polygon(d.pontos, {
                     color: hex, fillColor: hex, fillOpacity: 0.35, weight: 2
                 });
@@ -371,7 +402,6 @@
                 layers["Territórios"].addLayer(poligono);
             
             } else { 
-                // --- É UM PINO (MARKER) ---
                 let tipoIcone = d.tipo || 'padrao';
                 let imagemHTML = "";
                 if (d.imgUrl && d.imgUrl.length > 5) {
@@ -386,7 +416,6 @@
                         ${btnDel}
                     `);
 
-                // Distribui nas camadas
                 if (tipoIcone === 'cruz') layers["Religião (Cruz)"].addLayer(marcador);
                 else if (tipoIcone === 'lapide') layers["Mortos (Lápide)"].addLayer(marcador);
                 else if (tipoIcone === 'mercado') layers["Comércio (Mercado)"].addLayer(marcador);
@@ -400,7 +429,7 @@
         });
     }
 
-    // --- 7. UI GERAL ---
+    // UI
     window.fecharPainel = function() {
         document.getElementById('dm-panel').style.display = 'none';
         document.getElementById('novo-titulo').value = "";
@@ -419,8 +448,6 @@
         }).then(() => { fecharPainel(); });
     }
     window.deletar = function(id) { if(confirm("Apagar item?")) db.collection("locais").doc(id).delete(); };
-    
-    // Auth
     window.abrirLogin = () => document.getElementById('login-modal').style.display = 'flex';
     window.fecharLogin = () => document.getElementById('login-modal').style.display = 'none';
     window.logar = function() {
@@ -435,7 +462,7 @@
         renderizarTudo();
         if(user) {
             document.getElementById('btn-login').style.display = 'none';
-            document.getElementById('btn-draw').style.display = 'block'; // Mostra botão de desenhar
+            document.getElementById('btn-draw').style.display = 'block';
             document.getElementById('btn-logout').style.display = 'block';
             document.body.style.border = "3px solid #8a0303";
         } else {
