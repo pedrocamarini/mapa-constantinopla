@@ -143,7 +143,7 @@
 </div>
 
 <script>
-    // --- CHAVE DA API ---
+    // --- SUA CHAVE DA API JÁ ESTÁ AQUI ---
     const firebaseConfig = {
         apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ", 
         authDomain: "constantinopla-darkages.firebaseapp.com",
@@ -185,7 +185,6 @@
     };
     L.control.layers(null, layers, { collapsed: true, position: 'topleft' }).addTo(map);
 
-    // --- CORES & ÍCONES ---
     function getHexCor(cor) {
         if (cor === 'azul') return '#3388ff';
         if (cor === 'verde') return '#2ecc71';
@@ -215,7 +214,7 @@
         });
     }
 
-    // --- LÓGICA DE DESENHO BLINDADA ---
+    // --- LÓGICA DE DESENHO ---
     var modoDesenho = false;
     var pontosDesenho = [];
     var linhaTemporaria = null;
@@ -265,121 +264,118 @@
 
     map.on('click', function(e){
         if(!currentUser) return;
-
-        // MODO DESENHO
         if(modoDesenho) {
-            let lat = e.latlng.lat;
-            let lng = e.latlng.lng;
-            pontosDesenho.push([lat, lng]);
+            pontosDesenho.push([e.latlng.lat, e.latlng.lng]);
             redesenharLinhaTemporaria();
-            let bolinha = L.circleMarker([lat, lng], { radius: 4, color: '#fff', fillOpacity: 1 }).addTo(map);
+            let bolinha = L.circleMarker([e.latlng.lat, e.latlng.lng], { radius: 4, color: '#fff', fillOpacity: 1 }).addTo(map);
             marcadoresTemporarios.push(bolinha);
             document.getElementById('poly-status').innerText = `${pontosDesenho.length} pontos marcados.`;
             return;
         }
-
-        // MODO PINO
+        // Modo Pino
         tempLat = Math.round(e.latlng.lat);
         tempLng = Math.round(e.latlng.lng);
         document.getElementById('dm-panel').style.display = 'block';
         document.getElementById('novo-titulo').focus();
     });
 
-    // --- FUNÇÃO DE SALVAR CORRIGIDA ---
+    // --- FUNÇÃO DE SALVAR BLINDADA ---
     window.salvarTerritorio = async function() {
-        try {
-            if(pontosDesenho.length < 3) return alert("Marque pelo menos 3 pontos.");
-            
-            let tit = document.getElementById('poly-titulo').value || "Território Sem Nome";
-            let cor = document.getElementById('poly-cor').value;
-            let desc = document.getElementById('poly-desc').value || "";
+        if(pontosDesenho.length < 3) return alert("Marque pelo menos 3 pontos.");
+        
+        let tit = document.getElementById('poly-titulo').value || "Território";
+        let cor = document.getElementById('poly-cor').value;
+        let desc = document.getElementById('poly-desc').value || "";
 
-            // Limpa os dados para garantir que são números
-            let pontosLimpos = pontosDesenho.map(p => [Number(p[0]), Number(p[1])]);
+        // CORREÇÃO CRÍTICA DO BANCO DE DADOS:
+        // Firebase não aceita array de arrays [[x,y]]. 
+        // Convertemos para array de objetos [{lat:x, lng:y}]
+        let pontosParaSalvar = pontosDesenho.map(p => {
+            return { lat: Number(p[0]), lng: Number(p[1]) };
+        });
 
-            // SELECIONA O BOTÃO PELO ID (A CORREÇÃO ESTÁ AQUI!)
-            let btn = document.getElementById("btn-gravar-poly");
-            let txtAntigo = btn.innerText;
+        // CORREÇÃO DO BOTÃO:
+        // Só tenta mudar o texto se o botão existir
+        let btn = document.getElementById("btn-gravar-poly");
+        let txtAntigo = "";
+        if(btn) {
+            txtAntigo = btn.innerText;
             btn.innerText = "Salvando...";
+        }
 
+        try {
             await db.collection("locais").add({
                 tipo: "poligono",
-                pontos: pontosLimpos,
+                pontos: pontosParaSalvar, // Enviando objetos!
                 titulo: tit,
                 desc: desc,
                 cor: cor
             });
-
-            // Sucesso!
-            btn.innerText = txtAntigo;
+            // Sucesso
             cancelarDesenho();
-
         } catch (error) {
-            console.error(error);
-            alert("ERRO AO SALVAR: " + error.message);
-            // Se der erro, volta o texto do botão
-            let btn = document.getElementById("btn-gravar-poly");
-            if(btn) btn.innerText = "💾 GRAVAR";
+            alert("Erro ao salvar: " + error.message);
+        } finally {
+            if(btn) btn.innerText = txtAntigo || "💾 GRAVAR";
         }
     }
 
-    // --- RENDERIZAÇÃO ---
+    // --- RENDERIZAÇÃO CORRIGIDA ---
     var currentUser = null;
     var tempLat = 0, tempLng = 0;
 
     db.collection("locais").onSnapshot((snapshot) => {
-        Object.values(layers).forEach(layer => layer.clearLayers()); // Limpa tudo
+        Object.values(layers).forEach(layer => layer.clearLayers());
         
         snapshot.forEach((doc) => {
             let d = doc.data();
-            let id = doc.id;
-            let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${id}')">🗑️ EXCLUIR</button></div>` : "";
+            let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${doc.id}')">🗑️ EXCLUIR</button></div>` : "";
             let cor = d.cor || 'vermelho';
             let hex = getHexCor(cor);
             
             if(d.tipo === 'poligono' && d.pontos) {
-                // Desenha Polígono
-                let poligono = L.polygon(d.pontos, {
+                // CORREÇÃO DA LEITURA:
+                // Se vier do banco antigo (arrays), usa direto.
+                // Se vier do banco novo (objetos {lat,lng}), converte pra array pro Leaflet desenhar.
+                let latlngs = d.pontos.map(p => {
+                    return (Array.isArray(p)) ? p : [p.lat, p.lng];
+                });
+
+                let poligono = L.polygon(latlngs, {
                     color: hex, fillColor: hex, fillOpacity: 0.35, weight: 2
                 });
                 poligono.bindPopup(`<span class="popup-title" style="color:${hex}">${d.titulo}</span><div>${d.desc}</div>${btnDel}`);
                 layers["Territórios"].addLayer(poligono);
+            
             } else { 
-                // Desenha Pino
+                // Renderiza Pino Normal
                 let tipoIcone = d.tipo || 'padrao';
                 let imagemHTML = (d.imgUrl && d.imgUrl.length > 5) ? `<div class="popup-img-container"><img src="${d.imgUrl}" class="popup-img" onerror="this.style.display='none'"></div>` : "";
                 
                 let marcador = L.marker([d.lat, d.lng], {icon: criarIcone(cor, tipoIcone)})
                     .bindPopup(`<span class="popup-title color-${cor}">${d.titulo}</span><div>${d.desc}</div>${imagemHTML}${btnDel}`);
 
-                // Distribui nas camadas
-                let layerDestino = layers["Outros"];
-                if (tipoIcone === 'cruz') layerDestino = layers["Religião (Cruz)"];
-                else if (tipoIcone === 'lapide') layerDestino = layers["Mortos (Lápide)"];
-                else if (tipoIcone === 'mercado') layerDestino = layers["Comércio (Mercado)"];
-                else if (tipoIcone === 'governo' || tipoIcone === 'coroa') layerDestino = layers["Política"];
-                else if (tipoIcone === 'livro') layerDestino = layers["Conhecimento"];
-                else if (tipoIcone === 'ancora') layerDestino = layers["Naval"];
-                else if (tipoIcone === 'taverna') layerDestino = layers["Social"];
-                else if (tipoIcone === 'sangue') layerDestino = layers["Sangue"];
-                
-                layerDestino.addLayer(marcador);
+                // Camadas
+                let dest = layers["Outros"];
+                if (tipoIcone === 'cruz') dest = layers["Religião (Cruz)"];
+                else if (tipoIcone === 'lapide') dest = layers["Mortos (Lápide)"];
+                else if (tipoIcone === 'mercado') dest = layers["Comércio (Mercado)"];
+                else if (tipoIcone === 'governo' || tipoIcone === 'coroa') dest = layers["Política"];
+                else if (tipoIcone === 'livro') dest = layers["Conhecimento"];
+                else if (tipoIcone === 'ancora') dest = layers["Naval"];
+                else if (tipoIcone === 'taverna') dest = layers["Social"];
+                else if (tipoIcone === 'sangue') dest = layers["Sangue"];
+                dest.addLayer(marcador);
             }
         });
     });
 
     // UI
-    window.fecharPainel = function() {
-        document.getElementById('dm-panel').style.display = 'none';
-        document.getElementById('novo-titulo').value = ""; document.getElementById('novo-desc').value = ""; document.getElementById('novo-img').value = "";
-    }
+    window.fecharPainel = function() { document.getElementById('dm-panel').style.display = 'none'; document.getElementById('novo-titulo').value=""; document.getElementById('novo-desc').value=""; document.getElementById('novo-img').value=""; }
     window.salvarPonto = function() {
         var tit = document.getElementById('novo-titulo').value;
         if(!tit) return alert("Falta o título!");
-        db.collection("locais").add({
-            lat: tempLat, lng: tempLng, titulo: tit, desc: document.getElementById('novo-desc').value, 
-            imgUrl: document.getElementById('novo-img').value, cor: document.getElementById('novo-cor').value, tipo: document.getElementById('novo-tipo').value
-        }).then(() => { fecharPainel(); });
+        db.collection("locais").add({ lat: tempLat, lng: tempLng, titulo: tit, desc: document.getElementById('novo-desc').value, imgUrl: document.getElementById('novo-img').value, cor: document.getElementById('novo-cor').value, tipo: document.getElementById('novo-tipo').value }).then(() => fecharPainel());
     }
     window.deletar = function(id) { if(confirm("Apagar item?")) db.collection("locais").doc(id).delete(); };
     window.abrirLogin = () => document.getElementById('login-modal').style.display = 'flex';
@@ -390,17 +386,9 @@
     auth.onAuthStateChanged((user) => {
         currentUser = user;
         if(user) {
-            document.getElementById('btn-login').style.display = 'none';
-            document.getElementById('btn-draw').style.display = 'block';
-            document.getElementById('btn-logout').style.display = 'block';
-            document.body.style.border = "3px solid #8a0303";
+            document.getElementById('btn-login').style.display = 'none'; document.getElementById('btn-draw').style.display = 'block'; document.getElementById('btn-logout').style.display = 'block'; document.body.style.border = "3px solid #8a0303";
         } else {
-            document.getElementById('btn-login').style.display = 'block';
-            document.getElementById('btn-draw').style.display = 'none';
-            document.getElementById('btn-logout').style.display = 'none';
-            document.getElementById('dm-panel').style.display = 'none';
-            document.getElementById('poly-panel').style.display = 'none';
-            document.body.style.border = "none";
+            document.getElementById('btn-login').style.display = 'block'; document.getElementById('btn-draw').style.display = 'none'; document.getElementById('btn-logout').style.display = 'none'; document.getElementById('dm-panel').style.display = 'none'; document.getElementById('poly-panel').style.display = 'none'; document.body.style.border = "none";
         }
     });
 </script>
