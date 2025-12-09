@@ -20,36 +20,23 @@
         body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: 'Georgia', serif; }
         #map { height: 100vh; width: 100vw; background: #000; }
 
-        /* Menu de Camadas (Agora na Esquerda) */
+        /* Menu de Camadas (Esquerda) */
         .leaflet-control-layers {
             background: #111; border: 1px solid #8a0303; color: #ccc;
             font-family: 'Cinzel', serif; border-radius: 4px;
-            box-shadow: 0 0 10px #000;
-            margin-top: 10px !important; /* Espaçamento extra para desgrudar do Zoom */
+            box-shadow: 0 0 10px #000; margin-top: 10px !important;
         }
         .leaflet-control-layers-expanded { padding: 10px; background: rgba(10, 10, 10, 0.95); }
-        .leaflet-control-layers-selector { accent-color: #8a0303; cursor: pointer; }
-        .leaflet-control-layers label span { font-size: 13px; margin-left: 5px; }
 
-        /* Estilo dos Popups */
+        /* Popups */
         .leaflet-popup-content-wrapper { 
             background: #111; color: #ccc; border: 1px solid #8a0303;
             box-shadow: 0 0 15px rgba(0,0,0,0.9); font-size: 14px; padding: 0; overflow: hidden;
         }
         .leaflet-popup-content { margin: 12px; }
         .leaflet-popup-tip { background: #111; border-top: 1px solid #8a0303; }
-        
-        .popup-title { 
-            font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.4em; 
-            display: block; border-bottom: 1px solid #444; margin-bottom: 8px;
-        }
-        
-        .popup-img-container {
-            width: 100%; margin-top: 10px; border: 1px solid #444; border-radius: 4px; overflow: hidden;
-        }
-        .popup-img {
-            width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover;
-        }
+        .popup-title { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.4em; display: block; border-bottom: 1px solid #444; margin-bottom: 8px; }
+        .popup-img { width: 100%; height: auto; display: block; max-height: 200px; object-fit: cover; border-radius: 4px; margin-top: 10px; }
 
         /* Cores */
         .color-vermelho { color: #ff3333; }
@@ -67,41 +54,42 @@
             border: 2px solid #fff; box-shadow: 0 0 8px currentColor; font-size: 12px;
         }
 
-        /* UI Painel e Login */
-        /* Voltei o botão de login pra direita absoluta, já que o menu saiu de lá */
-        #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; } 
+        /* UI Geral */
+        #auth-container { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; gap: 10px; }
         
         .btn-ui { 
-            background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #666; 
+            background: rgba(0,0,0,0.9); color: #d4af37; border: 1px solid #8a0303; 
             padding: 8px 15px; cursor: pointer; font-family: 'Cinzel', serif; 
-            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; font-size: 12px;
         }
-        .btn-ui:hover { border-color: #ff0000; color: #ff0000; box-shadow: 0 0 10px #8a0303; }
-
+        .btn-ui:hover { background: #8a0303; color: #fff; box-shadow: 0 0 15px #8a0303; }
+        
+        /* Painel Padrão (Pinos) */
         #dm-panel {
             position: absolute; top: 60px; right: 10px; width: 300px;
             background: #0f0f0f; padding: 20px; z-index: 1000; display: none;
             border: 1px solid #8a0303; box-shadow: 0 0 30px #000;
         }
-        .close-panel {
-            position: absolute; top: 10px; right: 15px; color: #666; cursor: pointer; font-size: 18px;
-        }
-        .close-panel:hover { color: #f00; }
 
-        .dm-input { 
-            width: 100%; margin-bottom: 10px; padding: 10px; background: #222; 
-            border: 1px solid #444; color: #fff; box-sizing: border-box; 
+        /* Painel de Desenho de Território */
+        #poly-panel {
+            position: absolute; top: 60px; right: 10px; width: 250px;
+            background: #1a0505; padding: 15px; z-index: 1001; display: none;
+            border: 2px solid #ff3333; box-shadow: 0 0 30px #000;
         }
+        #poly-status { color: #ccc; font-size: 12px; margin-bottom: 10px; text-align: center; }
+
+        .close-panel { position: absolute; top: 10px; right: 15px; color: #666; cursor: pointer; font-size: 18px; }
+        .close-panel:hover { color: #f00; }
+        .dm-input { width: 100%; margin-bottom: 10px; padding: 10px; background: #222; border: 1px solid #444; color: #fff; box-sizing: border-box; }
         
+        /* Login Modal */
         #login-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); z-index: 2000; display: none; 
             justify-content: center; align-items: center;
         }
-        .login-box { 
-            background: #111; padding: 30px; border: 2px solid #8a0303; width: 300px; text-align: center; 
-        }
-
+        .login-box { background: #111; padding: 30px; border: 2px solid #8a0303; width: 300px; text-align: center; }
         .btn-del-container { margin-top: 15px; border-top: 1px solid #333; padding-top: 10px; text-align: center; }
         .btn-del {
             background: #300; border: 1px solid #600; color: #f00; width: 100%;
@@ -115,7 +103,8 @@
 <div id="map"></div>
 
 <div id="auth-container">
-    <button id="btn-login" class="btn-ui" onclick="abrirLogin()">💀 Login Mestre</button>
+    <button id="btn-draw" class="btn-ui" onclick="iniciarDesenho()" style="display:none;">⬠ Novo Território</button>
+    <button id="btn-login" class="btn-ui" onclick="abrirLogin()">💀 Login</button>
     <button id="btn-logout" class="btn-ui" onclick="sair()" style="display:none;">Sair</button>
 </div>
 
@@ -126,17 +115,14 @@
         <input type="password" id="senha" class="dm-input" placeholder="Senha">
         <br><br>
         <button class="btn-ui" onclick="logar()">Entrar</button>
-        <button class="btn-ui" style="border:none; background:transparent; color:#666; font-size:0.8em;" onclick="fecharLogin()">Cancelar</button>
+        <button class="btn-ui" style="border:none; background:transparent; color:#666;" onclick="fecharLogin()">Cancelar</button>
     </div>
 </div>
 
 <div id="dm-panel">
-    <span class="close-panel" onclick="fecharPainel()" title="Cancelar">✕</span>
-
+    <span class="close-panel" onclick="fecharPainel()">✕</span>
     <h3 style="color:#ff3333; font-family:'Cinzel'; margin-top:0;">Novo Local</h3>
-    <div id="coord-label" style="color:#666; font-size:0.8em; margin-bottom:10px;">Clique no mapa...</div>
-    
-    <input type="text" id="novo-titulo" class="dm-input" placeholder="Título do Local">
+    <input type="text" id="novo-titulo" class="dm-input" placeholder="Título">
     <input type="text" id="novo-img" class="dm-input" placeholder="Link da Imagem (URL)">
     
     <select id="novo-cor" class="dm-input">
@@ -151,22 +137,41 @@
     <select id="novo-tipo" class="dm-input">
         <option value="padrao">📍 Padrão (Pino)</option>
         <option value="cruz">✝️ Igreja / Templo</option>
-        <option value="lapide">🪦 Cemitério / Túmulo</option>
-        <option value="mercado">💰 Mercado / Bazar</option>
-        <option value="governo">🏛️ Fórum / Governo</option>
-        <option value="livro">📖 Biblioteca / Arquivo</option>
-        <option value="coroa">👑 Palácio / Nobreza</option>
-        <option value="ancora">⚓ Porto / Doca</option>
-        <option value="taverna">🍺 Taverna / Estalagem</option>
-        <option value="sangue">🩸 Refúgio / Sangue</option>
+        <option value="lapide">🪦 Cemitério</option>
+        <option value="mercado">💰 Mercado</option>
+        <option value="governo">🏛️ Governo</option>
+        <option value="livro">📖 Biblioteca</option>
+        <option value="coroa">👑 Nobreza</option>
+        <option value="ancora">⚓ Porto</option>
+        <option value="taverna">🍺 Taverna</option>
+        <option value="sangue">🩸 Refúgio</option>
     </select>
 
     <textarea id="novo-desc" class="dm-input" rows="3" placeholder="Descrição"></textarea>
-    <button class="btn-ui" style="width:100%" onclick="salvarPonto()">Gravar no Mapa</button>
+    <button class="btn-ui" style="width:100%" onclick="salvarPonto()">Gravar Local</button>
+</div>
+
+<div id="poly-panel">
+    <h3 style="color:#ff3333; font-family:'Cinzel'; margin:0 0 10px 0;">Desenhando...</h3>
+    <div id="poly-status">Clique no mapa para adicionar pontos.</div>
+    
+    <input type="text" id="poly-titulo" class="dm-input" placeholder="Nome do Território">
+    <select id="poly-cor" class="dm-input" onchange="atualizarPreviewCor()">
+        <option value="vermelho">🔴 Vermelho</option>
+        <option value="azul">🔵 Azul</option>
+        <option value="verde">🟢 Verde</option>
+        <option value="roxo">🟣 Roxo</option>
+        <option value="dourado">🟡 Dourado</option>
+        <option value="cinza">⚫ Cinza</option>
+    </select>
+    <textarea id="poly-desc" class="dm-input" rows="2" placeholder="Descrição"></textarea>
+    
+    <button class="btn-ui" style="width:100%; margin-bottom:10px;" onclick="salvarTerritorio()">💾 GRAVAR TERRITÓRIO</button>
+    <button class="btn-ui" style="width:100%; background:#333; border-color:#666;" onclick="cancelarDesenho()">Cancelar</button>
 </div>
 
 <script>
-    // --- 1. CONFIGURAÇÃO (Chave inserida) ---
+    // --- 1. CONFIGURAÇÃO ---
     const firebaseConfig = {
         apiKey: "AIzaSyAqHGUicjs2ykSIiZPBgjiROyc5TbE4YWQ", 
         authDomain: "constantinopla-darkages.firebaseapp.com",
@@ -193,32 +198,33 @@
     map.fitBounds(bounds);
     map.setMaxBounds(bounds);
 
-    // --- 3. CAMADAS (LAYERS) ---
+    // --- 3. CAMADAS ---
     var layers = {
+        "Territórios": L.layerGroup().addTo(map), // Nova camada!
         "Outros": L.layerGroup().addTo(map),
         "Religião (Cruz)": L.layerGroup().addTo(map),
         "Mortos (Lápide)": L.layerGroup().addTo(map),
         "Comércio (Mercado)": L.layerGroup().addTo(map),
-        "Política (Governo/Coroa)": L.layerGroup().addTo(map),
-        "Conhecimento (Livros)": L.layerGroup().addTo(map),
-        "Naval (Porto)": L.layerGroup().addTo(map),
-        "Social (Taverna)": L.layerGroup().addTo(map),
-        "Sangue (Refúgios)": L.layerGroup().addTo(map)
+        "Política": L.layerGroup().addTo(map),
+        "Conhecimento": L.layerGroup().addTo(map),
+        "Naval": L.layerGroup().addTo(map),
+        "Social": L.layerGroup().addTo(map),
+        "Sangue": L.layerGroup().addTo(map)
     };
-
-    // POSIÇÃO DO MENU: Mudei para 'topleft' (Canto Superior Esquerdo)
-    // O Leaflet coloca ele automaticamente ABAIXO do Zoom.
     L.control.layers(null, layers, { collapsed: true, position: 'topleft' }).addTo(map);
 
-    // --- 4. FUNÇÃO ÍCONES ---
-    function criarIcone(cor, tipo) {
-        let hex = '#ff3333';
-        if (cor === 'azul') hex = '#3388ff';
-        if (cor === 'verde') hex = '#2ecc71';
-        if (cor === 'roxo') hex = '#9b59b6';
-        if (cor === 'dourado') hex = '#f1c40f';
-        if (cor === 'cinza') hex = '#95a5a6';
+    // --- 4. FUNÇÕES DE SUPORTE (Cores e Ícones) ---
+    function getHexCor(cor) {
+        if (cor === 'azul') return '#3388ff';
+        if (cor === 'verde') return '#2ecc71';
+        if (cor === 'roxo') return '#9b59b6';
+        if (cor === 'dourado') return '#f1c40f';
+        if (cor === 'cinza') return '#95a5a6';
+        return '#ff3333'; // Padrão
+    }
 
+    function criarIcone(cor, tipo) {
+        let hex = getHexCor(cor);
         let iconClass = 'fa-circle';
         if (tipo === 'cruz') iconClass = 'fa-cross';
         if (tipo === 'lapide') iconClass = 'fa-skull';
@@ -237,7 +243,99 @@
         });
     }
 
-    // --- 5. LÓGICA DO SISTEMA ---
+    // --- 5. LÓGICA DE DESENHO (TERRITÓRIOS) ---
+    var modoDesenho = false;
+    var pontosDesenho = [];
+    var poligonoTemporario = null;
+    var marcadoresTemporarios = []; // Bolinhas brancas pra ver onde clicou
+
+    window.iniciarDesenho = function() {
+        fecharPainel(); // Fecha painel de pinos se tiver aberto
+        modoDesenho = true;
+        pontosDesenho = [];
+        document.getElementById('poly-panel').style.display = 'block';
+        document.getElementById('poly-status').innerText = "Clique no mapa para começar o traçado.";
+        map.getContainer().style.cursor = 'crosshair';
+    }
+
+    window.cancelarDesenho = function() {
+        modoDesenho = false;
+        pontosDesenho = [];
+        if(poligonoTemporario) map.removeLayer(poligonoTemporario);
+        marcadoresTemporarios.forEach(m => map.removeLayer(m));
+        marcadoresTemporarios = [];
+        document.getElementById('poly-panel').style.display = 'none';
+        map.getContainer().style.cursor = '';
+    }
+
+    window.atualizarPreviewCor = function() {
+        if(poligonoTemporario) {
+            let cor = document.getElementById('poly-cor').value;
+            poligonoTemporario.setStyle({ color: getHexCor(cor), fillColor: getHexCor(cor) });
+        }
+    }
+
+    // Clique no Mapa (Controla tanto Pinos quanto Polígonos)
+    map.on('click', function(e){
+        if(!currentUser) return; // Só mestre
+
+        // LÓGICA A: Modo Desenho (Polígono)
+        if(modoDesenho) {
+            let lat = e.latlng.lat;
+            let lng = e.latlng.lng;
+            pontosDesenho.push([lat, lng]);
+
+            // Desenha/Atualiza o polígono visual enquanto clica
+            let cor = document.getElementById('poly-cor').value;
+            let hex = getHexCor(cor);
+
+            // Se já existe, remove pra redesenhar
+            if(poligonoTemporario) map.removeLayer(poligonoTemporario);
+            
+            poligonoTemporario = L.polygon(pontosDesenho, {
+                color: hex, fillColor: hex, fillOpacity: 0.3, weight: 2
+            }).addTo(map);
+
+            // Adiciona uma bolinha pequena onde clicou pra ver o vértice
+            let bolinha = L.circleMarker([lat, lng], {
+                radius: 3, color: '#fff', fillOpacity: 1
+            }).addTo(map);
+            marcadoresTemporarios.push(bolinha);
+
+            document.getElementById('poly-status').innerText = `${pontosDesenho.length} pontos marcados. Continue ou Grave.`;
+            return;
+        }
+
+        // LÓGICA B: Modo Padrão (Pinos)
+        tempLat = Math.round(e.latlng.lat);
+        tempLng = Math.round(e.latlng.lng);
+        document.getElementById('dm-panel').style.display = 'block';
+        document.getElementById('coord-label').innerText = `Coords: ${tempLat}, ${tempLng}`;
+        document.getElementById('novo-titulo').focus();
+    });
+
+    window.salvarTerritorio = function() {
+        if(pontosDesenho.length < 3) return alert("Um território precisa de pelo menos 3 pontos!");
+        
+        let tit = document.getElementById('poly-titulo').value;
+        let cor = document.getElementById('poly-cor').value;
+        let desc = document.getElementById('poly-desc').value;
+
+        if(!tit) return alert("Dê um nome ao território.");
+
+        // Salva com um "tipo" especial
+        db.collection("locais").add({
+            tipo: "poligono", // Identificador
+            pontos: pontosDesenho, // Array de coordenadas
+            titulo: tit,
+            desc: desc,
+            cor: cor
+        }).then(() => {
+            cancelarDesenho(); // Limpa e volta ao normal
+        }).catch(err => alert("Erro: " + err));
+    }
+
+    // --- 6. RENDERIZAÇÃO DO BANCO ---
     var currentUser = null;
     var dadosLocais = []; 
     var tempLat = 0, tempLng = 0;
@@ -247,98 +345,105 @@
         snapshot.forEach((doc) => {
             dadosLocais.push({ id: doc.id, ...doc.data() });
         });
-        renderizarPontos();
+        renderizarTudo();
     });
 
-    function renderizarPontos() {
+    function renderizarTudo() {
         Object.values(layers).forEach(layer => layer.clearLayers());
         
         dadosLocais.forEach(d => {
-            let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR LOCAL</button></div>` : "";
+            let btnDel = currentUser ? `<div class="btn-del-container"><button class="btn-del" onclick="deletar('${d.id}')">🗑️ EXCLUIR</button></div>` : "";
             let cor = d.cor || 'vermelho';
-            let tipo = d.tipo || 'padrao';
+            let hex = getHexCor(cor);
             
-            let imagemHTML = "";
-            if (d.imgUrl && d.imgUrl.length > 5) {
-                imagemHTML = `<div class="popup-img-container"><img src="${d.imgUrl}" class="popup-img" onerror="this.style.display='none'"></div>`;
-            }
-
-            let marcador = L.marker([d.lat, d.lng], {icon: criarIcone(cor, tipo)})
-                .bindPopup(`
-                    <span class="popup-title color-${cor}">${d.titulo}</span>
-                    <div style="margin-bottom:5px;">${d.desc}</div>
-                    ${imagemHTML}
+            // --- É UM POLÍGONO? ---
+            if(d.tipo === 'poligono') {
+                let poligono = L.polygon(d.pontos, {
+                    color: hex, fillColor: hex, fillOpacity: 0.35, weight: 2
+                });
+                
+                poligono.bindPopup(`
+                    <span class="popup-title" style="color:${hex}">${d.titulo}</span>
+                    <div>${d.desc}</div>
                     ${btnDel}
                 `);
+                
+                layers["Territórios"].addLayer(poligono);
+            
+            } else { 
+                // --- É UM PINO (MARKER) ---
+                let tipoIcone = d.tipo || 'padrao';
+                let imagemHTML = "";
+                if (d.imgUrl && d.imgUrl.length > 5) {
+                    imagemHTML = `<div class="popup-img-container"><img src="${d.imgUrl}" class="popup-img" onerror="this.style.display='none'"></div>`;
+                }
 
-            if (tipo === 'cruz') layers["Religião (Cruz)"].addLayer(marcador);
-            else if (tipo === 'lapide') layers["Mortos (Lápide)"].addLayer(marcador);
-            else if (tipo === 'mercado') layers["Comércio (Mercado)"].addLayer(marcador);
-            else if (tipo === 'governo' || tipo === 'coroa') layers["Política (Governo/Coroa)"].addLayer(marcador);
-            else if (tipo === 'livro') layers["Conhecimento (Livros)"].addLayer(marcador);
-            else if (tipo === 'ancora') layers["Naval (Porto)"].addLayer(marcador);
-            else if (tipo === 'taverna') layers["Social (Taverna)"].addLayer(marcador);
-            else if (tipo === 'sangue') layers["Sangue (Refúgios)"].addLayer(marcador);
-            else layers["Outros"].addLayer(marcador);
+                let marcador = L.marker([d.lat, d.lng], {icon: criarIcone(cor, tipoIcone)})
+                    .bindPopup(`
+                        <span class="popup-title color-${cor}">${d.titulo}</span>
+                        <div>${d.desc}</div>
+                        ${imagemHTML}
+                        ${btnDel}
+                    `);
+
+                // Distribui nas camadas
+                if (tipoIcone === 'cruz') layers["Religião (Cruz)"].addLayer(marcador);
+                else if (tipoIcone === 'lapide') layers["Mortos (Lápide)"].addLayer(marcador);
+                else if (tipoIcone === 'mercado') layers["Comércio (Mercado)"].addLayer(marcador);
+                else if (tipoIcone === 'governo' || tipoIcone === 'coroa') layers["Política"].addLayer(marcador);
+                else if (tipoIcone === 'livro') layers["Conhecimento"].addLayer(marcador);
+                else if (tipoIcone === 'ancora') layers["Naval"].addLayer(marcador);
+                else if (tipoIcone === 'taverna') layers["Social"].addLayer(marcador);
+                else if (tipoIcone === 'sangue') layers["Sangue"].addLayer(marcador);
+                else layers["Outros"].addLayer(marcador);
+            }
         });
     }
 
-    map.on('click', function(e){
-        if(!currentUser) return;
-        tempLat = Math.round(e.latlng.lat);
-        tempLng = Math.round(e.latlng.lng);
-        document.getElementById('dm-panel').style.display = 'block';
-        document.getElementById('coord-label').innerText = `Coords: ${tempLat}, ${tempLng}`;
-        document.getElementById('novo-titulo').focus();
-    });
-
+    // --- 7. UI GERAL ---
     window.fecharPainel = function() {
         document.getElementById('dm-panel').style.display = 'none';
         document.getElementById('novo-titulo').value = "";
         document.getElementById('novo-desc').value = "";
         document.getElementById('novo-img').value = "";
     }
-
     window.salvarPonto = function() {
         var tit = document.getElementById('novo-titulo').value;
         var desc = document.getElementById('novo-desc').value;
         var img = document.getElementById('novo-img').value;
         var cor = document.getElementById('novo-cor').value;
         var tipo = document.getElementById('novo-tipo').value;
-
         if(!tit) return alert("Falta o título!");
-
         db.collection("locais").add({
             lat: tempLat, lng: tempLng, titulo: tit, desc: desc, imgUrl: img, cor: cor, tipo: tipo
-        }).then(() => { fecharPainel(); }).catch(err => alert("Erro: " + err));
+        }).then(() => { fecharPainel(); });
     }
-
-    window.deletar = function(id) {
-        if(confirm("Apagar este local?")) db.collection("locais").doc(id).delete();
-    };
-
+    window.deletar = function(id) { if(confirm("Apagar item?")) db.collection("locais").doc(id).delete(); };
+    
+    // Auth
     window.abrirLogin = () => document.getElementById('login-modal').style.display = 'flex';
     window.fecharLogin = () => document.getElementById('login-modal').style.display = 'none';
-    
     window.logar = function() {
         var e = document.getElementById('email').value;
         var s = document.getElementById('senha').value;
         auth.signInWithEmailAndPassword(e, s).then(() => fecharLogin()).catch(e => alert(e.message));
     }
-
     window.sair = function() { auth.signOut().then(() => alert("Saiu!")); }
 
     auth.onAuthStateChanged((user) => {
         currentUser = user;
-        renderizarPontos();
+        renderizarTudo();
         if(user) {
             document.getElementById('btn-login').style.display = 'none';
+            document.getElementById('btn-draw').style.display = 'block'; // Mostra botão de desenhar
             document.getElementById('btn-logout').style.display = 'block';
             document.body.style.border = "3px solid #8a0303";
         } else {
             document.getElementById('btn-login').style.display = 'block';
+            document.getElementById('btn-draw').style.display = 'none';
             document.getElementById('btn-logout').style.display = 'none';
             document.getElementById('dm-panel').style.display = 'none';
+            document.getElementById('poly-panel').style.display = 'none';
             document.body.style.border = "none";
         }
     });
